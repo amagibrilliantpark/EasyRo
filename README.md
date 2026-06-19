@@ -1,4 +1,4 @@
-![EasyRo Banner](./assets/banner.svg)
+![EasyRo Banner](./EasyRo/assets/banner.svg)
 
 # EasyRo
 
