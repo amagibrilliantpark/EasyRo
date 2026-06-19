@@ -1,3 +1,5 @@
+![EasyRo Banner](./assets/banner.svg)
+
 # EasyRo
 
 A desktop app that brings AI-powered agentic coding assistance to Roblox Studio. It connects an AI agent to your project through Rojo, so the AI can read and write code that syncs directly into Studio.
