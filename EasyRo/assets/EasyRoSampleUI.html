@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EasyRo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%; min-height: 100vh;
+      font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px; font-weight: 600; line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body { background-color: #f5f7fa; }
+
+    .bg-canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+    .layout { position: relative; z-index: 1; width: 100%; height: 100vh; display: flex; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 340px; height: 100vh; flex-shrink: 0;
+      background: rgba(255,255,255,0.58);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+      border-right: 1px solid rgba(180,210,240,0.38);
+      box-shadow: 2px 0 20px rgba(160,200,235,0.09);
+      display: flex; flex-direction: column;
+      position: fixed; left: 0; top: 0; z-index: 30;
+    }
+
+    .sidebar.collapsed { width: 56px; min-width: 56px; }
+
+    .sidebar-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 14px 14px 18px; min-height: 64px; position: relative;
+    }
+
+    .sidebar.collapsed .sidebar-header {
+      flex-direction: column; gap: 6px; padding: 14px 0; align-items: center; justify-content: flex-start;
+    }
+
+    .sidebar-logo { display: flex; align-items: center; gap: 9px; user-select: none; }
+    .sidebar.collapsed .sidebar-logo { display: none; }
+    .logo-icon { width: 26px; height: 26px; flex-shrink: 0; }
+    .sidebar-logo-text { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; letter-spacing: 2.5px; color: #18283a; }
+    .sidebar-logo-text em { font-style: normal; color: #4e87bb; font-weight: 400; }
+
+    .sidebar-btns { display: flex; align-items: center; gap: 4px; }
+    .sidebar.collapsed .sidebar-btns { flex-direction: column; gap: 6px; }
+
+    .btn-new {
+      width: 28px; height: 28px; border-radius: 7px; border: none;
+      background: transparent; color: #5a85aa;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: background 0.15s; flex-shrink: 0;
+    }
+    .btn-new:hover { background: rgba(210,230,250,0.50); }
+    .btn-new svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+    .btn-sidebar-toggle { width: 32px; height: 32px; }
+    .sidebar.collapsed .btn-sidebar-toggle { width: 36px; height: 36px; }
+    .btn-search { width: 32px; height: 32px; }
+    .sidebar.collapsed .btn-search { width: 36px; height: 36px; }
+
+    .session-list {
+      flex: 1; overflow-y: auto; padding: 4px 10px 16px 10px;
+      display: flex; flex-direction: column; gap: 1px;
+    }
+    .sidebar.collapsed .session-list { display: none; }
+
+    .search-bar {
+      display: none; position: absolute; top: 0; left: 0; right: 0;
+      padding: 18px 14px 14px 18px; background: transparent;
+      align-items: center; gap: 6px; z-index: 10; height: 64px; box-sizing: border-box;
+    }
+    .search-bar.active { display: flex; }
+    .search-bar input {
+      flex: 1; padding: 9px 12px; border-radius: 9px; border: 1px solid rgba(180,210,240,0.50);
+      background: rgba(255,255,255,0.80); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600; color: #1e2d3d; outline: none;
+      box-shadow: 0 2px 10px rgba(140,185,230,0.10);
+    }
+    .search-bar input::placeholder { color: #8ea8c0; }
+    .search-bar input:focus { border-color: rgba(110,170,230,0.60); box-shadow: 0 2px 14px rgba(110,170,230,0.18); }
+    .search-close {
+      width: 32px; height: 32px; border-radius: 7px; border: none; background: transparent; color: #5a85aa;
+      display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+    }
+    .search-close:hover { background: rgba(210,230,250,0.50); }
+    .search-close svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; }
+    .sidebar-logo.hidden, .sidebar-btns.hidden { display: none; }
+
+    .sidebar-bottom-space {
+      width: 100%; height: 40px; flex-shrink: 0;
+    }
+
+    .sidebar-status {
+      position: absolute; bottom: 10px; left: 0; right: 0;
+      text-align: center;
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; color: #1a2a3a;
+    }
+    .sidebar.collapsed .sidebar-status { display: none; }
+    .sidebar.collapsed .sidebar-bottom-space { display: none; }
+    .session-list::-webkit-scrollbar { width: 3px; }
+    .session-list::-webkit-scrollbar-track { background: transparent; }
+    .session-list::-webkit-scrollbar-thumb { background: rgba(160,200,235,0.30); border-radius: 2px; }
+
+    .session-section-label {
+      font-family: 'Manrope', sans-serif; font-size: 10.5px; font-weight: 600; color: #8ea8c0; text-transform: uppercase; letter-spacing: 1px; padding: 10px 10px 4px 10px; user-select: none;
+    }
+
+    .session-card { padding: 7px 10px; border-radius: 7px; background: transparent; border: none; cursor: pointer; transition: background 0.14s; display: flex; align-items: center; justify-content: space-between; position: relative; }
+    .session-card:hover { background: rgba(210,230,250,0.50); }
+    .session-card.active { background: rgba(200,225,250,0.55); }
+    .sc-title { font-family: 'Manrope', sans-serif; font-size: 13.5px; font-weight: 600; color: #2a3a4e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.1px; flex: 1; }
+
+    .sc-title-input {
+      font-family: 'Manrope', sans-serif; font-size: 13.5px; font-weight: 600; color: #2a3a4e; border: none; outline: none; background: transparent; border-radius: 0; padding: 0; margin: 0; flex: 1; min-width: 0; box-shadow: none; -webkit-appearance: none; appearance: none; letter-spacing: -0.1px;
+    }
+
+    .session-more {
+      width: 22px; height: 22px; border-radius: 5px; border: none; background: transparent; color: #7a9ab5; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; opacity: 0; transition: opacity 0.12s;
+    }
+    .session-card:hover .session-more { opacity: 1; }
+    .session-more svg { width: 14px; height: 14px; fill: currentColor; }
+
+    .session-menu {
+      display: none; position: absolute; top: calc(100% + 4px); right: 8px;
+      background: #fff; border-radius: 10px; padding: 5px; min-width: 140px;
+      box-shadow: 0 6px 24px rgba(100,150,200,0.22), 0 2px 8px rgba(100,150,200,0.10);
+      z-index: 100;
+    }
+    .session-menu.active { display: block; }
+    .session-menu-item {
+      display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 7px; border: none; background: transparent; width: 100%; font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: #2a3a4e; cursor: pointer; transition: background 0.12s;
+    }
+    .session-menu-item:hover { background: #f0f5fc; }
+    .session-menu-item svg { width: 13px; height: 13px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; flex-shrink: 0; }
+    .session-menu-item.danger { color: #c0392b; }
+    .session-menu-item.danger:hover { background: #fdf0ef; }
+
+    /* ── Main ── */
+    .main { margin-left: 340px; margin-right: 270px; width: calc(100vw - 340px - 270px); height: 100vh; display: flex; flex-direction: column; position: relative; }
+
+    /* ── Right Panel ── */
+    .right-panel {
+      width: 270px; height: 100vh; flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(190,218,250,0.70) 0%, rgba(175,210,248,0.55) 50%, rgba(200,222,252,0.65) 100%);
+      border-left: none;
+      box-shadow: inset 30px 0 40px -20px rgba(255,255,255,0.6), inset 60px 0 50px -20px rgba(255,255,255,0.3);
+      border-left: 1px solid rgba(180,210,240,0.50);
+      position: fixed; right: 0; top: 0; z-index: 30;
+      display: flex; flex-direction: column;
+      overflow-y: auto;
+    }
+    .right-panel::-webkit-scrollbar { width: 3px; }
+    .right-panel::-webkit-scrollbar-track { background: transparent; }
+    .right-panel::-webkit-scrollbar-thumb { background: rgba(160,200,235,0.30); border-radius: 2px; }
+
+    .rp-session-name {
+      padding: 22px 20px 16px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; color: #3a5068;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left;
+    }
+
+    .rp-context-label {
+      padding: 4px 20px 2px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; color: #3a5068;
+    }
+
+    .rp-stats {
+      padding: 0 20px 8px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: #6a849e;
+      display: flex; flex-direction: column; gap: 1px;
+    }
+
+    .rp-todo-header {
+      padding: 10px 20px 6px 20px;
+      font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 700; color: #3a5068;
+      cursor: pointer; user-select: none;
+    }
+    .rp-todo-header .todo-arrow { display: inline-block; width: 12px; text-align: center; }
+    .rp-todo-header:hover { color: #1e2d3d; }
+
+    .rp-todo-list {
+      display: none; padding: 0 20px 12px 20px;
+      flex-direction: column; gap: 6px;
+      max-height: 200px; overflow-y: auto;
+    }
+    .rp-todo-list::-webkit-scrollbar { width: 3px; }
+    .rp-todo-list::-webkit-scrollbar-track { background: transparent; }
+    .rp-todo-list::-webkit-scrollbar-thumb { background: rgba(160,200,235,0.30); border-radius: 2px; }
+    .rp-todo-list.active { display: flex; }
+
+    .rp-todo-item {
+      display: flex; align-items: center; gap: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600; color: #6a849e;
+      cursor: default;
+    }
+    .rp-todo-item .todo-check {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #8ea8c0; flex-shrink: 0;
+    }
+
+    .rp-footer {
+      margin-top: auto; padding: 14px 20px 20px 20px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .rp-footer-logo { font-family: 'Space Grotesk', sans-serif; font-size: 14.5px; font-weight: 600; color: #3a5068; letter-spacing: 2px; }
+    .rp-footer-logo em { font-style: normal; color: #4e87bb; font-weight: 400; }
+    .rp-footer-ver { font-family: 'DM Sans', sans-serif; font-size: 14.5px; font-weight: 600; color: #5a7a94; }
+
+    /* ── Prompt ── */
+    .prompt-area { padding: 16px 36px 32px 36px; position: relative; z-index: 10; }
+
+    .prompt-box {
+      display: flex; flex-direction: column;
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(180,210,240,0.50);
+      border-radius: 14px; padding: 0 12px 0 16px; gap: 0; min-height: 90px;
+      box-shadow: 0 4px 24px rgba(140,185,230,0.15), 0 1px 4px rgba(140,185,230,0.10);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      position: relative;
+    }
+
+    .prompt-top {
+      display: flex; align-items: center; flex: 1; min-height: 48px;
+      padding-right: 50px;
+    }
+
+    .prompt-input {
+      flex: 1; border: none; outline: none; background: transparent;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      color: #1e2d3d; padding: 14px 0 0 0; line-height: 1.4;
+    }
+
+    .prompt-input::placeholder { color: #8ea8c0; font-weight: 500; }
+
+    .prompt-bottom {
+      display: flex; align-items: center; gap: 6px; padding-bottom: 12px;
+    }
+
+    /* ── Send btn ── */
+    .btn-send {
+      width: 40px; height: 40px; border-radius: 10px; border: none;
+      background: #4e87bb; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; transition: background 0.15s, transform 0.1s;
+      position: absolute; right: 14px; top: 0; bottom: 0; margin: auto 0;
+    }
+
+    .btn-send:hover { background: #3d73a5; }
+    .btn-send:active { transform: scale(0.95); }
+    .btn-send svg { width: 14px; height: 14px; }
+
+    .btn-send.stop-mode { background: #2f5f8a; border-radius: 8px; }
+    .btn-send.stop-mode svg.stop-icon { display: block; }
+    .btn-send.stop-mode svg.arrow-icon { display: none; }
+    .btn-send:not(.stop-mode) svg.stop-icon { display: none; }
+    .btn-send:not(.stop-mode) svg.arrow-icon { display: block; }
+
+    /* ── Selectors ── */
+    .selector-wrapper { position: relative; }
+
+    .selector-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 8px;
+      border: 1px solid rgba(180,210,240,0.45);
+      background: rgba(240,245,252,0.70);
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      color: #3a5a7a; cursor: pointer; flex-shrink: 0;
+      transition: background 0.15s, border-color 0.15s; user-select: none;
+      min-width: 72px; justify-content: center;
+    }
+
+    .selector-btn:hover { background: rgba(210,230,250,0.65); border-color: rgba(78,135,187,0.45); }
+
+    /* ── Popup ── */
+    .popup-menu {
+      display: none; position: absolute; bottom: calc(100% + 10px); left: 0;
+      background: #fff; border: none; border-radius: 12px; padding: 6px;
+      box-shadow: 0 8px 32px rgba(100,150,200,0.22), 0 2px 8px rgba(100,150,200,0.10);
+      z-index: 200; min-width: 140px;
+    }
+
+    .popup-menu.active { display: block; }
+
+    .popup-item {
+      padding: 9px 14px; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+      color: #2a3a4e; cursor: pointer; transition: background 0.12s;
+      display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    }
+
+    .popup-item:hover { background: #f0f5fc; }
+    .popup-item.selected { background: #e8f0fa; color: #2a6ab5; }
+
+    .popup-item.selected::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: #4e87bb; flex-shrink: 0;
+    }
+
+    /* ── Chat ── */
+    .chat-area {
+      flex: 1; overflow-y: auto; padding: 28px 36px 10px 36px;
+      display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth;
+    }
+
+    .chat-area::-webkit-scrollbar { width: 4px; }
+    .chat-area::-webkit-scrollbar-track { background: transparent; }
+    .chat-area::-webkit-scrollbar-thumb { background: rgba(160,200,235,0.35); border-radius: 3px; }
+
+    .empty-state {
+      display: none; flex: 1; align-items: center; justify-content: center; flex-direction: row; gap: 14px;
+    }
+    .empty-state.active { display: flex; }
+    .empty-state-icon { width: 52px; height: 52px; flex-shrink: 0; }
+    .empty-state-text { font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 600; letter-spacing: 2.5px; color: #18283a; }
+    .empty-state-text em { font-style: normal; color: #4e87bb; font-weight: 400; }
+
+    .message { max-width: 680px; line-height: 1.6; font-size: 13.5px; font-weight: 500; }
+
+    .ai-message { align-self: flex-start; color: #1e2d3d; max-width: 100%; }
+    .ai-message .msg-text { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; line-height: 1.6; }
+    .ai-message .msg-text + pre { margin-top: 10px; }
+    .ai-message pre + .msg-text { margin-top: 10px; }
+
+    .ai-message pre {
+      background: rgba(220,235,250,0.45); border: 1px solid rgba(180,210,240,0.40);
+      border-radius: 8px; padding: 12px 14px; margin-top: 10px;
+      overflow-x: auto; font-size: 12.5px; line-height: 1.55;
+      font-family: 'SF Mono','Fira Code','Consolas',monospace; color: #162536;
+    }
+
+    .ai-message code { font-family: 'SF Mono','Fira Code','Consolas',monospace; font-size: 12.5px; }
+
+    .user-message { align-self: flex-end; }
+
+    .user-message .msg-card {
+      background: rgba(200,225,250,0.55); border: 1px solid rgba(170,205,240,0.45);
+      border-radius: 12px; padding: 10px 16px; color: #1a2c40; font-weight: 500; font-family: 'DM Sans', sans-serif;
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
+  </style>
+</head>
+<body>
+
+  <svg class="bg-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
+    <defs>
+      <radialGradient id="b1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.36)"/><stop offset="100%" stop-color="rgba(175,210,248,0)"/></radialGradient>
+      <radialGradient id="b2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.30)"/><stop offset="100%" stop-color="rgba(190,218,250,0)"/></radialGradient>
+      <radialGradient id="b3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(200,222,252,0.28)"/><stop offset="100%" stop-color="rgba(200,222,252,0)"/></radialGradient>
+      <radialGradient id="b4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(180,212,246,0.32)"/><stop offset="100%" stop-color="rgba(180,212,246,0)"/></radialGradient>
+      <radialGradient id="b5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(195,220,250,0.26)"/><stop offset="100%" stop-color="rgba(195,220,250,0)"/></radialGradient>
+      <radialGradient id="b6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(185,215,248,0.22)"/><stop offset="100%" stop-color="rgba(185,215,248,0)"/></radialGradient>
+      <radialGradient id="b7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(170,208,245,0.28)"/><stop offset="100%" stop-color="rgba(170,208,245,0)"/></radialGradient>
+      <filter id="blur1"><feGaussianBlur stdDeviation="45"/></filter>
+    </defs>
+    <g filter="url(#blur1)">
+      <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#b1)" transform="rotate(-18 120 110)"/>
+      <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#b2)" transform="rotate(12 1280 80)"/>
+      <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#b3)" transform="rotate(25 380 480)"/>
+      <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#b4)" transform="rotate(-10 1050 420)"/>
+      <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#b5)" transform="rotate(8 200 810)"/>
+      <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#b6)" transform="rotate(-20 1340 780)"/>
+      <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#b7)" transform="rotate(5 720 460)"/>
+    </g>
+  </svg>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <svg class="logo-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="#c2d9f0"/>
+            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="#18283a"/>
+            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="#f5f7fa"/>
+          </svg>
+          <span class="sidebar-logo-text">Easy<em>Ro</em></span>
+        </div>
+        <div class="sidebar-btns">
+          <button class="btn-new btn-sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <line x1="2" y1="4" x2="12" y2="4"/>
+              <line x1="2" y1="7" x2="10" y2="7"/>
+              <line x1="2" y1="10" x2="12" y2="10"/>
+            </svg>
+          </button>
+          <button class="btn-new btn-search" id="searchToggle" title="Search Sessions">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="6" cy="6" r="4"/>
+              <line x1="9" y1="9" x2="12.5" y2="12.5"/>
+            </svg>
+          </button>
+          <button class="btn-new" id="newChatBtn" title="New Chat">
+            <svg viewBox="0 0 14 14" fill="none">
+              <line x1="7" y1="1" x2="7" y2="13"/>
+              <line x1="1" y1="7" x2="13" y2="7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="search-bar" id="searchBar">
+        <input type="text" id="searchInput" placeholder="Search">
+        <button class="search-close" id="searchClose">
+          <svg viewBox="0 0 14 14"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+        </button>
+      </div>
+
+      <div class="session-list" id="sessionList">
+        <div class="session-section-label" id="attachedLabel" style="display:none">Attached</div>
+        <div id="attachedSessions"></div>
+        <div class="session-section-label">Sessions</div>
+        <div id="normalSessions">
+          <div class="session-card active" data-name="Simple Script Starter">
+            <div class="sc-title">Simple Script Starter</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Obby Course Builder">
+            <div class="sc-title">Obby Course Builder</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="DataStore Manager">
+            <div class="sc-title">DataStore Manager</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="NPC Pathfinding Setup">
+            <div class="sc-title">NPC Pathfinding Setup</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Tycoon Framework Base">
+            <div class="sc-title">Tycoon Framework Base</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Combat System v2">
+            <div class="sc-title">Combat System v2</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Admin Commands Panel">
+            <div class="sc-title">Admin Commands Panel</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Leaderboard & Stats GUI">
+            <div class="sc-title">Leaderboard & Stats GUI</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Ragdoll Physics Script">
+            <div class="sc-title">Ragdoll Physics Script</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+          <div class="session-card" data-name="Map Loader & Streaming">
+            <div class="sc-title">Map Loader & Streaming</div>
+            <button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>
+            <div class="session-menu">
+              <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
+              <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
+              <button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-bottom-space"></div>
+      <div class="sidebar-status" id="sidebarStatus">Rojo ready</div>
+    </aside>
+
+    <main class="main">
+      <div class="chat-area" id="chatArea">
+        <div class="empty-state" id="emptyState">
+          <svg class="empty-state-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="#c2d9f0"/>
+            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="#18283a"/>
+            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="#f5f7fa"/>
+          </svg>
+          <div class="empty-state-text">Easy<em>Ro</em></div>
+        </div>
+        <div class="message ai-message">
+          <span class="msg-text">Hello! I'm the EasyRo assistant. I can help you with Roblox Lua scripts, game mechanics, and development. How can I help you today?</span>
+        </div>
+        <div class="message user-message">
+          <div class="msg-card">Can you write a simple jump system?</div>
+        </div>
+        <div class="message ai-message">
+          <div class="msg-text">Sure! Here's a basic LocalScript jump system:</div>
+<pre><code>local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+humanoid.JumpPower = 50
+humanoid.Jump = true</code></pre>
+          <div class="msg-text">You can place this script in StarterPlayerScripts.</div>
+        </div>
+        <div class="message user-message">
+          <div class="msg-card">How do I adjust the JumpPower value?</div>
+        </div>
+        <div class="message ai-message">
+          <span class="msg-text">JumpPower is a property of the Humanoid object. By changing this value, you can adjust the jump height. For example, setting it to 72 will make the player jump higher.</span>
+        </div>
+      </div>
+
+      <div class="prompt-area">
+        <div class="prompt-box">
+          <div class="prompt-top">
+            <input class="prompt-input" type="text" placeholder="Reply.." />
+          </div>
+          <button class="btn-send" title="Send">
+            <svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 13V3"/>
+              <path d="M4 7l4-4 4 4"/>
+            </svg>
+            <svg class="stop-icon" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+            </svg>
+          </button>
+          <div class="prompt-bottom">
+            <div class="selector-wrapper">
+              <button class="selector-btn" id="modeSelector"><span>Build</span></button>
+              <div class="popup-menu" id="modePopup">
+                <div class="popup-item selected" data-value="Build">Build</div>
+                <div class="popup-item" data-value="Plan">Plan</div>
+              </div>
+            </div>
+            <div class="selector-wrapper">
+              <button class="selector-btn" id="modelSelector"><span>GPT-4o</span></button>
+              <div class="popup-menu" id="modelPopup">
+                <div class="popup-item selected" data-value="GPT-4o">GPT-4o</div>
+                <div class="popup-item" data-value="GPT-4o Mini">GPT-4o Mini</div>
+                <div class="popup-item" data-value="Claude 3.5">Claude 3.5</div>
+                <div class="popup-item" data-value="Gemini Pro">Gemini Pro</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="right-panel">
+      <div class="rp-session-name" id="rpSessionName">Simple Script Starter</div>
+      <div class="rp-context-label">Context</div>
+      <div class="rp-stats">
+        <span>92.918 tokens</span>
+        <span>46% used</span>
+        <span>$0.00 spent</span>
+      </div>
+      <div class="rp-todo-header" id="todoHeader"><span class="todo-arrow">▶</span> Todo</div>
+      <div class="rp-todo-list" id="todoList">
+        <div class="rp-todo-item"><span class="todo-check">[x]</span> TODO A - Rastgele harf görevi</div>
+        <div class="rp-todo-item"><span class="todo-check">[ ]</span> TODO B - Rastgele harf görevi</div>
+        <div class="rp-todo-item"><span class="todo-check">[ ]</span> TODO C - Rastgele harf görevi</div>
+      </div>
+      <div class="rp-footer">
+        <span class="rp-footer-logo">Easy<em>Ro</em></span>
+        <span class="rp-footer-ver">v0.0.1</span>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const chatArea = document.getElementById('chatArea');
+    const promptInput = document.querySelector('.prompt-input');
+    const btnSend = document.querySelector('.btn-send');
+    const modeSelector = document.getElementById('modeSelector');
+    const modePopup = document.getElementById('modePopup');
+    const modelSelector = document.getElementById('modelSelector');
+    const modelPopup = document.getElementById('modelPopup');
+    const rpSessionName = document.getElementById('rpSessionName');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    let isProcessing = false;
+    let timeoutId = null;
+
+    sidebarToggle.addEventListener('click', () => {
+      sidebar.classList.toggle('collapsed');
+      if (sidebar.classList.contains('collapsed')) {
+        searchBar.classList.remove('active');
+        sidebarLogo.classList.remove('hidden');
+        sidebarBtns.classList.remove('hidden');
+      }
+    });
+
+    const emptyState = document.getElementById('emptyState');
+    const newChatBtn = document.getElementById('newChatBtn');
+
+    newChatBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var messages = chatArea.querySelectorAll('.message');
+      messages.forEach(function(m) { m.remove(); });
+      emptyState.classList.add('active');
+      rpSessionName.textContent = 'New Chat';
+
+      var cards = document.querySelectorAll('.session-card');
+      cards.forEach(function(c) { c.classList.remove('active'); });
+
+      var newCard = document.createElement('div');
+      newCard.className = 'session-card active';
+      newCard.dataset.name = 'New Chat';
+      newCard.innerHTML = '<div class="sc-title">New Chat</div>' +
+        '<button class="session-more"><svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg></button>' +
+        '<div class="session-menu">' +
+        '<button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>' +
+        '<button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>' +
+        '<button class="session-menu-item danger" data-action="delete"><svg viewBox="0 0 14 14"><path d="M2 4h10M5 4V2h4v2M3 4v8a1 1 0 001 1h6a1 1 0 001-1V4"/></svg>Delete</button>' +
+        '</div>';
+      document.getElementById('normalSessions').prepend(newCard);
+
+      newCard.querySelector('.session-more').addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        var menu = this.closest('.session-card').querySelector('.session-menu');
+        var wasOpen = menu.classList.contains('active');
+        document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+        if (!wasOpen) menu.classList.add('active');
+      });
+
+      newCard.querySelectorAll('.session-menu-item').forEach(function(item) {
+        item.addEventListener('click', function(ev) {
+          ev.stopPropagation();
+          var action = this.dataset.action;
+          var card = this.closest('.session-card');
+          var title = card.querySelector('.sc-title');
+          if (action === 'delete') {
+            card.remove();
+            updateAttachedLabel();
+          } else if (action === 'rename') {
+            document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+            var currentName = title.textContent;
+            var input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'sc-title-input';
+            title.replaceWith(input);
+            input.focus();
+            input.select();
+            function finishRename() {
+              var newName = input.value.trim() || currentName;
+              var newTitle = document.createElement('div');
+              newTitle.className = 'sc-title';
+              newTitle.textContent = newName;
+              card.dataset.name = newName;
+              input.replaceWith(newTitle);
+              if (card.classList.contains('active')) rpSessionName.textContent = newName;
+            }
+            input.addEventListener('blur', finishRename);
+            input.addEventListener('keydown', function(ev2) {
+              if (ev2.key === 'Enter') { ev2.preventDefault(); input.blur(); }
+              if (ev2.key === 'Escape') { input.value = currentName; input.blur(); }
+            });
+          } else if (action === 'attach') {
+            document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+            var attached = document.getElementById('attachedSessions');
+            var normal = document.getElementById('normalSessions');
+            var isAttached = card.parentElement === attached;
+            if (isAttached) { normal.appendChild(card); } else { attached.appendChild(card); }
+            updateAttachedLabel();
+          }
+          if (action !== 'rename') {
+            document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+          }
+        });
+      });
+    });
+
+    function addMessage(text, isUser) {
+      emptyState.classList.remove('active');
+      const msg = document.createElement('div');
+      msg.className = 'message ' + (isUser ? 'user-message' : 'ai-message');
+      if (isUser) {
+        msg.innerHTML = '<div class="msg-card">' + escapeHtml(text) + '</div>';
+      } else {
+        msg.innerHTML = '<span class="msg-text">' + text + '</span>';
+      }
+      chatArea.appendChild(msg);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    function escapeHtml(t) {
+      const d = document.createElement('div');
+      d.textContent = t;
+      return d.innerHTML;
+    }
+
+    function setStopMode(active) {
+      isProcessing = active;
+      btnSend.classList.toggle('stop-mode', active);
+      promptInput.disabled = active;
+    }
+
+    function handleSend() {
+      if (isProcessing) {
+        clearTimeout(timeoutId);
+        setStopMode(false);
+        return;
+      }
+      const val = promptInput.value.trim();
+      if (!val) return;
+      addMessage(val, true);
+      promptInput.value = '';
+      setStopMode(true);
+      timeoutId = setTimeout(() => {
+        addMessage('Message received. Processing...', false);
+        setStopMode(false);
+      }, 600);
+    }
+
+    btnSend.addEventListener('click', handleSend);
+    promptInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+    });
+
+    function closeAllPopups() {
+      modePopup.classList.remove('active');
+      modelPopup.classList.remove('active');
+    }
+
+    modeSelector.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = modePopup.classList.contains('active');
+      closeAllPopups();
+      if (!wasOpen) modePopup.classList.add('active');
+    });
+
+    modelSelector.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasOpen = modelPopup.classList.contains('active');
+      closeAllPopups();
+      if (!wasOpen) modelPopup.classList.add('active');
+    });
+
+    document.addEventListener('click', () => closeAllPopups());
+
+    modePopup.querySelectorAll('.popup-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modePopup.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        modeSelector.querySelector('span').textContent = item.dataset.value;
+        modePopup.classList.remove('active');
+      });
+    });
+
+    modelPopup.querySelectorAll('.popup-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        modelPopup.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        modelSelector.querySelector('span').textContent = item.dataset.value;
+        modelPopup.classList.remove('active');
+      });
+    });
+
+    document.querySelectorAll('.session-card').forEach(card => {
+      card.addEventListener('click', function(e) {
+        if (e.target.closest('.session-more') || e.target.closest('.session-menu')) return;
+        document.querySelectorAll('.session-card').forEach(c => c.classList.remove('active'));
+        this.classList.add('active');
+        rpSessionName.textContent = this.dataset.name || this.querySelector('.sc-title').textContent;
+        var messages = chatArea.querySelectorAll('.message');
+        if (messages.length > 0) {
+          emptyState.classList.remove('active');
+        }
+      });
+    });
+
+    document.querySelectorAll('.session-more').forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var menu = this.closest('.session-card').querySelector('.session-menu');
+        var wasOpen = menu.classList.contains('active');
+        document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+        if (!wasOpen) menu.classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.session-menu-item').forEach(item => {
+      item.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var action = this.dataset.action;
+        var card = this.closest('.session-card');
+        var title = card.querySelector('.sc-title');
+
+        if (action === 'delete') {
+          card.remove();
+          updateAttachedLabel();
+        } else if (action === 'rename') {
+          document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+          var currentName = title.textContent;
+          var input = document.createElement('input');
+          input.type = 'text';
+          input.value = currentName;
+          input.className = 'sc-title-input';
+          title.replaceWith(input);
+          input.focus();
+          input.select();
+          function finishRename() {
+            var newName = input.value.trim() || currentName;
+            var newTitle = document.createElement('div');
+            newTitle.className = 'sc-title';
+            newTitle.textContent = newName;
+            card.dataset.name = newName;
+            input.replaceWith(newTitle);
+            if (card.classList.contains('active')) rpSessionName.textContent = newName;
+          }
+          input.addEventListener('blur', finishRename);
+          input.addEventListener('keydown', function(ev) {
+            if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
+            if (ev.key === 'Escape') { input.value = currentName; input.blur(); }
+          });
+        } else if (action === 'attach') {
+          document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+          var attached = document.getElementById('attachedSessions');
+          var normal = document.getElementById('normalSessions');
+          var isAttached = card.parentElement === attached;
+          if (isAttached) {
+            normal.appendChild(card);
+          } else {
+            attached.appendChild(card);
+          }
+          updateAttachedLabel();
+        }
+        if (action !== 'rename') {
+          document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+        }
+      });
+    });
+
+    function updateAttachedLabel() {
+      var attached = document.getElementById('attachedSessions');
+      var label = document.getElementById('attachedLabel');
+      label.style.display = attached.children.length > 0 ? 'block' : 'none';
+    }
+
+    document.addEventListener('click', function() {
+      document.querySelectorAll('.session-menu').forEach(function(m) { m.classList.remove('active'); });
+    });
+
+    const searchToggle = document.getElementById('searchToggle');
+    const searchBar = document.getElementById('searchBar');
+    const searchInput = document.getElementById('searchInput');
+    const searchClose = document.getElementById('searchClose');
+    const sidebarHeader = document.querySelector('.sidebar-header');
+    const sidebarLogo = document.querySelector('.sidebar-logo');
+    const sidebarBtns = document.querySelector('.sidebar-btns');
+
+    searchToggle.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (sidebar.classList.contains('collapsed')) {
+        sidebar.classList.remove('collapsed');
+      }
+      sidebarLogo.classList.add('hidden');
+      sidebarBtns.classList.add('hidden');
+      searchBar.classList.add('active');
+      searchInput.focus();
+    });
+
+    searchClose.addEventListener('click', function(e) {
+      e.stopPropagation();
+      searchBar.classList.remove('active');
+      sidebarLogo.classList.remove('hidden');
+      sidebarBtns.classList.remove('hidden');
+      searchInput.value = '';
+      filterSessions('');
+    });
+
+    searchInput.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    searchInput.addEventListener('input', function() {
+      filterSessions(this.value.toLowerCase());
+    });
+
+    function filterSessions(query) {
+      var cards = document.querySelectorAll('#normalSessions .session-card, #attachedSessions .session-card');
+      cards.forEach(function(card) {
+        var name = (card.dataset.name || card.textContent).toLowerCase();
+        card.style.display = !query || name.indexOf(query) !== -1 ? '' : 'none';
+      });
+    }
+
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    const todoHeader = document.getElementById('todoHeader');
+    const todoList = document.getElementById('todoList');
+
+    todoHeader.addEventListener('click', function() {
+      var isOpen = todoList.classList.contains('active');
+      var arrow = todoHeader.querySelector('.todo-arrow');
+      if (isOpen) {
+        todoList.classList.remove('active');
+        arrow.textContent = '▶';
+      } else {
+        todoList.classList.add('active');
+        arrow.textContent = '▼';
+      }
+    });
+
+    const statusMessages = ['Rojo ready', 'OpenCode ready', 'Waiting for Rojo plugin', 'All done'];
+    const sidebarStatus = document.getElementById('sidebarStatus');
+    let statusIndex = 0;
+    setInterval(function() {
+      statusIndex = (statusIndex + 1) % statusMessages.length;
+      sidebarStatus.textContent = statusMessages[statusIndex];
+    }, 2000);
+  </script>
+
+</body>
+</html>

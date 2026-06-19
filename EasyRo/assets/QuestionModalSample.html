@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prompt</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #000;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .stack { width: 560px; display: flex; flex-direction: column; position: relative; }
+
+    .question-modal {
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(180,210,240,0.50);
+      border-radius: 14px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.45), 0 1px 8px rgba(0,0,0,0.30);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 20px 0 0 0;
+    }
+    .question-modal.hidden { display: none; }
+
+    .qm-close {
+      position: absolute; top: 10px; right: 10px;
+      width: 24px; height: 24px; border-radius: 7px; border: none;
+      background: transparent; color: #8ea8c0;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 10;
+    }
+    .qm-close:hover { background: rgba(78,135,187,0.12); color: #3a5a7a; }
+    .qm-close svg { width: 13px; height: 13px; }
+
+    .qm-top-bar { display: flex; align-items: center; padding: 0 18px; gap: 6px; }
+
+    .qm-top-label {
+      font-size: 12px; font-weight: 600; color: #9aafc4;
+      padding: 6px 12px; border-radius: 7px; cursor: pointer;
+      white-space: nowrap; transition: all 0.15s ease;
+    }
+    .qm-top-label:hover { color: #5a7a96; background: rgba(78,135,187,0.08); }
+    .qm-top-label.active { color: #2a6ab5; background: rgba(78,135,187,0.12); font-weight: 700; }
+    .qm-top-label.answered { color: #9aafc4; }
+
+    .qm-header { padding: 18px 18px 10px 18px; }
+    .qm-title { font-size: 14px; font-weight: 700; color: #1e2d3d; letter-spacing: -0.1px; }
+
+    .qm-body { padding: 4px 6px 6px 6px; }
+
+    .qm-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 12px; border-radius: 9px; cursor: pointer;
+    }
+    .qm-row:hover { background: rgba(78,135,187,0.10); }
+    .qm-row.active { background: rgba(78,135,187,0.14); }
+
+    .qm-num {
+      width: 20px; height: 20px; border-radius: 6px;
+      background: rgba(180,210,240,0.35); color: #4e7aa0;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .qm-row.active .qm-num { background: #4e87bb; color: #fff; }
+    .qm-label { flex: 1; font-size: 13px; font-weight: 600; color: #2a3a4e; line-height: 1.35; }
+    .qm-row.answered .qm-label { text-decoration: line-through; text-decoration-color: #9aafc4; color: #9aafc4; }
+
+    .qm-arrow {
+      width: 16px; height: 16px; color: #4e87bb; flex-shrink: 0;
+      opacity: 0; transform: translateX(-3px);
+    }
+    .qm-row:hover .qm-arrow, .qm-row.active .qm-arrow { opacity: 1; transform: translateX(0); }
+
+    .qm-confirm-label { font-size: 11px; font-weight: 600; color: #9aafc4; min-width: 64px; flex-shrink: 0; }
+    .qm-confirm-value { font-size: 13px; font-weight: 600; color: #2a3a4e; flex: 1; }
+
+    .qm-row-confirm {
+      display: flex; align-items: center; gap: 10px;
+      padding: 11px 12px; border-radius: 9px;
+      background: rgba(78,135,187,0.06);
+    }
+
+    .qm-confirm-actions {
+      display: flex; justify-content: flex-end; gap: 8px;
+      padding: 10px 12px 0 12px;
+    }
+
+    .qm-btn-back {
+      padding: 7px 16px; border-radius: 8px;
+      border: 1px solid rgba(180,210,240,0.45);
+      background: rgba(240,245,252,0.70);
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      color: #3a5a7a; cursor: pointer;
+    }
+    .qm-btn-back:hover { background: rgba(210,230,250,0.65); }
+
+    .qm-btn-send {
+      padding: 7px 16px; border-radius: 8px; border: none;
+      background: #4e87bb;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      color: #fff; cursor: pointer;
+    }
+    .qm-btn-send:hover { background: #3d73a5; }
+
+    .qm-divider { height: 1px; background: rgba(180,210,240,0.30); margin: 2px 18px; }
+
+    .qm-footer { padding: 10px 18px 14px 18px; position: relative; z-index: 10; }
+
+    .qm-input-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; }
+
+    .qm-edit-icon {
+      width: 14px; height: 14px; color: #8ea8c0; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .qm-edit-icon svg { width: 14px; height: 14px; }
+
+    .qm-text-input {
+      flex: 1; border: none; outline: none; background: transparent;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500;
+      color: #2a3a4e; padding: 6px 0; line-height: 1.4; caret-color: #4e87bb;
+    }
+    .qm-text-input::placeholder { color: #9aafc4; font-weight: 500; }
+
+    .prompt-box {
+      width: 560px; display: flex; flex-direction: column;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid rgba(180,210,240,0.50);
+      border-radius: 14px; padding: 0 12px 0 16px; gap: 0; min-height: 90px;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.45), 0 1px 8px rgba(0,0,0,0.30);
+      backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: relative;
+    }
+    .prompt-box.hidden { display: none; }
+
+    .prompt-top { display: flex; align-items: center; flex: 1; min-height: 48px; padding-right: 50px; }
+    .prompt-input {
+      flex: 1; border: none; outline: none; background: transparent;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      color: #1e2d3d; padding: 14px 0 0 0; line-height: 1.4;
+    }
+    .prompt-input::placeholder { color: #8ea8c0; font-weight: 500; }
+
+    .prompt-bottom { display: flex; align-items: center; gap: 6px; padding-bottom: 12px; }
+
+    .btn-send {
+      width: 40px; height: 40px; border-radius: 10px; border: none;
+      background: #4e87bb; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0;
+      position: absolute; right: 14px; top: 0; bottom: 0; margin: auto 0;
+    }
+    .btn-send:hover { background: #3d73a5; }
+    .btn-send:active { transform: scale(0.95); }
+    .btn-send svg { width: 14px; height: 14px; }
+    .btn-send.stop-mode { background: #2f5f8a; border-radius: 8px; }
+    .btn-send.stop-mode svg.stop-icon { display: block; }
+    .btn-send.stop-mode svg.arrow-icon { display: none; }
+    .btn-send:not(.stop-mode) svg.stop-icon { display: none; }
+    .btn-send:not(.stop-mode) svg.arrow-icon { display: block; }
+
+    .selector-wrapper { position: relative; }
+    .selector-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 8px;
+      border: 1px solid rgba(180,210,240,0.45);
+      background: rgba(240,245,252,0.70);
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+      color: #3a5a7a; cursor: pointer; flex-shrink: 0;
+      user-select: none; min-width: 72px; justify-content: center;
+    }
+    .selector-btn:hover { background: rgba(210,230,250,0.65); border-color: rgba(78,135,187,0.45); }
+
+    .popup-menu {
+      display: none; position: absolute; bottom: calc(100% + 10px); left: 0;
+      background: #fff; border: none; border-radius: 12px; padding: 6px;
+      box-shadow: 0 8px 32px rgba(100,150,200,0.22), 0 2px 8px rgba(100,150,200,0.10);
+      z-index: 200; min-width: 140px;
+    }
+    .popup-menu.active { display: block; }
+    .popup-item {
+      padding: 9px 14px; border-radius: 8px;
+      font-family: 'DM Sans', sans-serif; font-size: 12.5px; font-weight: 600;
+      color: #2a3a4e; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    }
+    .popup-item:hover { background: #f0f5fc; }
+    .popup-item.selected { background: #e8f0fa; color: #2a6ab5; }
+    .popup-item.selected::before {
+      content: ''; width: 6px; height: 6px; border-radius: 50%;
+      background: #4e87bb; flex-shrink: 0;
+    }
+
+    .demo-trigger {
+      position: fixed; top: 20px; left: 20px;
+      padding: 8px 14px; border-radius: 8px;
+      border: 1px solid rgba(180,210,240,0.45);
+      background: rgba(255,255,255,0.12); color: #cfe0f0;
+      font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .demo-trigger:hover { background: rgba(255,255,255,0.18); }
+  </style>
+</head>
+<body>
+
+  <button class="demo-trigger" id="demoTrigger">Show question modal</button>
+
+  <div class="stack">
+    <div class="question-modal hidden" id="questionModal">
+      <button class="qm-close" id="qmClose" title="Close">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+      </button>
+      <div class="qm-top-bar" id="qmTopBar"></div>
+      <div class="qm-header"><div class="qm-title" id="qmTitle"></div></div>
+      <div class="qm-body" id="qmBody"></div>
+      <div class="qm-divider" id="qmDivider"></div>
+      <div class="qm-footer" id="qmFooter">
+        <div class="qm-input-row" id="qmInputRow">
+          <span class="qm-edit-icon">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V4a1 1 0 0 1 1-1z"/></svg>
+          </span>
+          <input class="qm-text-input" type="text" placeholder="Type your answer here.." id="qmTextInput" />
+        </div>
+      </div>
+    </div>
+
+    <div class="prompt-box" id="promptBox">
+      <div class="prompt-top">
+        <input class="prompt-input" type="text" placeholder="Reply.." id="promptInput" />
+      </div>
+      <button class="btn-send" title="Send" id="btnSend">
+        <svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 13V3"/><path d="M4 7l4-4 4 4"/>
+        </svg>
+        <svg class="stop-icon" viewBox="0 0 16 16" fill="currentColor">
+          <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+        </svg>
+      </button>
+      <div class="prompt-bottom">
+        <div class="selector-wrapper">
+          <button class="selector-btn" id="modeSelector"><span>Build</span></button>
+          <div class="popup-menu" id="modePopup">
+            <div class="popup-item selected" data-value="Build">Build</div>
+            <div class="popup-item" data-value="Plan">Plan</div>
+          </div>
+        </div>
+        <div class="selector-wrapper">
+          <button class="selector-btn" id="modelSelector"><span>GPT-4o</span></button>
+          <div class="popup-menu" id="modelPopup">
+            <div class="popup-item selected" data-value="GPT-4o">GPT-4o</div>
+            <div class="popup-item" data-value="GPT-4o Mini">GPT-4o Mini</div>
+            <div class="popup-item" data-value="Claude 3.5">Claude 3.5</div>
+            <div class="popup-item" data-value="Gemini Pro">Gemini Pro</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const promptInput = document.getElementById('promptInput');
+    const qmTextInput = document.getElementById('qmTextInput');
+    const btnSend = document.getElementById('btnSend');
+    const modeSelector = document.getElementById('modeSelector');
+    const modePopup = document.getElementById('modePopup');
+    const modelSelector = document.getElementById('modelSelector');
+    const modelPopup = document.getElementById('modelPopup');
+    const questionModal = document.getElementById('questionModal');
+    const promptBox = document.getElementById('promptBox');
+    const qmTitle = document.getElementById('qmTitle');
+    const qmClose = document.getElementById('qmClose');
+    const qmTopBar = document.getElementById('qmTopBar');
+    const qmBody = document.getElementById('qmBody');
+    const qmDivider = document.getElementById('qmDivider');
+    const qmFooter = document.getElementById('qmFooter');
+    const demoTrigger = document.getElementById('demoTrigger');
+
+    let isProcessing = false, timeoutId = null, currentQ = 0, activeOptionIndex = -1;
+    let questionModalOpen = false, inConfirmMode = false;
+    let answers = [], customInputs = [];
+
+    const questions = [
+      { label: "Framework", text: "Which framework would you like to use?", options: ["Continue with React", "Use Vue", "Vanilla JS is enough"] },
+      { label: "State", text: "How should state management be handled?", options: ["useState / basic hooks", "Zustand", "Redux Toolkit"] },
+      { label: "Styling", text: "What should we use for styling?", options: ["Tailwind CSS", "Plain CSS / CSS Modules", "Styled Components"] }
+    ];
+
+    function closeAllPopups() { modePopup.classList.remove('active'); modelPopup.classList.remove('active'); }
+    modeSelector.addEventListener('click', (e) => { e.stopPropagation(); const w = modePopup.classList.contains('active'); closeAllPopups(); if (!w) modePopup.classList.add('active'); });
+    modelSelector.addEventListener('click', (e) => { e.stopPropagation(); const w = modelPopup.classList.contains('active'); closeAllPopups(); if (!w) modelPopup.classList.add('active'); });
+    modePopup.querySelectorAll('.popup-item').forEach(item => {
+      item.addEventListener('click', (e) => { e.stopPropagation(); modePopup.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected')); item.classList.add('selected'); modeSelector.querySelector('span').textContent = item.dataset.value; modePopup.classList.remove('active'); });
+    });
+    modelPopup.querySelectorAll('.popup-item').forEach(item => {
+      item.addEventListener('click', (e) => { e.stopPropagation(); modelPopup.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected')); item.classList.add('selected'); modelSelector.querySelector('span').textContent = item.dataset.value; modelPopup.classList.remove('active'); });
+    });
+
+    function setStopMode(a) { isProcessing = a; btnSend.classList.toggle('stop-mode', a); promptInput.disabled = a; }
+    function handleSend() {
+      if (isProcessing) { clearTimeout(timeoutId); setStopMode(false); return; }
+      const v = promptInput.value.trim(); if (!v) return;
+      promptInput.value = ''; setStopMode(true); timeoutId = setTimeout(() => setStopMode(false), 600);
+    }
+    btnSend.addEventListener('click', handleSend);
+    promptInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !questionModalOpen) { e.preventDefault(); handleSend(); } });
+
+    function renderTopBar() {
+      qmTopBar.innerHTML = '';
+      questions.forEach((q, i) => {
+        const lbl = document.createElement('span');
+        let c = 'qm-top-label';
+        if (!inConfirmMode && i === currentQ) c += ' active';
+        if (answers[i] !== undefined || customInputs[i]) c += ' answered';
+        lbl.className = c;
+        lbl.textContent = q.label;
+        lbl.addEventListener('click', () => { if (inConfirmMode) return; saveCurrentInput(); currentQ = i; renderOptions(); });
+        qmTopBar.appendChild(lbl);
+      });
+      const cl = document.createElement('span');
+      cl.className = 'qm-top-label' + (inConfirmMode ? ' active' : '') + (questions.every((q, i) => answers[i] !== undefined) ? ' answered' : '');
+      cl.textContent = 'Confirm';
+      cl.addEventListener('click', () => { saveCurrentInput(); showConfirmScreen(); });
+      qmTopBar.appendChild(cl);
+    }
+
+    function renderOptions() {
+      inConfirmMode = false;
+      const q = questions[currentQ];
+      qmTitle.textContent = q.text;
+      activeOptionIndex = -1;
+      qmBody.innerHTML = '';
+      qmFooter.style.display = '';
+      qmDivider.style.display = '';
+      renderTopBar();
+      qmTextInput.value = customInputs[currentQ] || '';
+      const saved = answers[currentQ];
+      q.options.forEach((label, i) => {
+        const row = document.createElement('div');
+        row.className = 'qm-row';
+        if (saved === label) { row.classList.add('active', 'answered'); }
+        row.innerHTML = `<div class="qm-num">${i + 1}</div><div class="qm-label">${label}</div><svg class="qm-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>`;
+        row.addEventListener('mouseenter', () => setActiveOption(i));
+        row.addEventListener('click', () => selectOption(i));
+        qmBody.appendChild(row);
+        if (saved === label) setActiveOption(i);
+      });
+    }
+
+    function setActiveOption(i) {
+      activeOptionIndex = i;
+      qmBody.querySelectorAll('.qm-row').forEach((el, idx) => el.classList.toggle('active', idx === i));
+    }
+
+    function selectOption(i) {
+      answers[currentQ] = questions[currentQ].options[i];
+      customInputs[currentQ] = qmTextInput.value;
+      if (currentQ < questions.length - 1) { currentQ++; renderOptions(); }
+      checkAllAnswered();
+    }
+
+    function checkAllAnswered() {
+      if (questions.every((q, i) => answers[i] !== undefined)) showConfirmScreen();
+    }
+
+    function saveCurrentInput() {
+      customInputs[currentQ] = qmTextInput.value;
+      if (qmTextInput.value.trim() && !answers[currentQ]) answers[currentQ] = qmTextInput.value.trim();
+    }
+
+    qmTextInput.addEventListener('input', () => {
+      customInputs[currentQ] = qmTextInput.value;
+      if (qmTextInput.value.trim()) { answers[currentQ] = qmTextInput.value.trim(); renderTopBar(); checkAllAnswered(); }
+    });
+
+    function showConfirmScreen() {
+      inConfirmMode = true;
+      saveCurrentInput();
+      qmTitle.textContent = 'Your selections';
+      qmBody.innerHTML = '';
+      qmFooter.style.display = 'none';
+      qmDivider.style.display = 'none';
+      renderTopBar();
+      questions.forEach((q, i) => {
+        const answer = answers[i] || customInputs[i] || '—';
+        const row = document.createElement('div');
+        row.className = 'qm-row-confirm';
+        row.innerHTML = `<span class="qm-confirm-label">${q.label}</span><span class="qm-confirm-value">${answer}</span>`;
+        qmBody.appendChild(row);
+      });
+      const actions = document.createElement('div');
+      actions.className = 'qm-confirm-actions';
+      actions.innerHTML = `<button class="qm-btn-send">Confirm & Send</button><button class="qm-btn-back">Back</button>`;
+      actions.querySelector('.qm-btn-back').addEventListener('click', () => renderOptions());
+      actions.querySelector('.qm-btn-send').addEventListener('click', () => closeQuestionModal());
+      qmBody.appendChild(actions);
+    }
+
+    function openQuestionModal() {
+      currentQ = 0; answers = []; customInputs = []; inConfirmMode = false;
+      renderOptions();
+      questionModal.classList.remove('hidden');
+      promptBox.classList.add('hidden');
+      questionModalOpen = true;
+      qmTextInput.value = '';
+      setTimeout(() => qmTextInput.focus(), 0);
+    }
+
+    function closeQuestionModal() {
+      questionModal.classList.add('hidden');
+      promptBox.classList.remove('hidden');
+      questionModalOpen = false;
+    }
+
+    qmClose.addEventListener('click', closeQuestionModal);
+    demoTrigger.addEventListener('click', () => { if (questionModalOpen) closeQuestionModal(); else openQuestionModal(); });
+
+    document.addEventListener('keydown', (e) => {
+      if (!questionModalOpen || inConfirmMode || document.activeElement === qmTextInput) return;
+      if (e.key === 'Escape') { closeQuestionModal(); return; }
+      const q = questions[currentQ];
+      if (e.key === 'ArrowDown') { e.preventDefault(); setActiveOption(activeOptionIndex < q.options.length - 1 ? activeOptionIndex + 1 : 0); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveOption(activeOptionIndex > 0 ? activeOptionIndex - 1 : q.options.length - 1); }
+      else if (e.key === 'Enter' && activeOptionIndex >= 0) { e.preventDefault(); selectOption(activeOptionIndex); }
+      else if (/^[1-9]$/.test(e.key)) { const idx = parseInt(e.key) - 1; if (idx < q.options.length) selectOption(idx); }
+    });
+  </script>
+</body>
+</html>

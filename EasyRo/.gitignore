@@ -1,0 +1,29 @@
+# Project place file
+/EasyRo.rbxlx
+
+# Roblox Studio lock files
+/*.rbxlx.lock
+/*.rbxl.lock
+
+sourcemap.json
+
+# Session isolation
+.sessions/
+
+# Build output
+desktop-app/dist/
+
+# Node modules
+desktop-app/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop-app/.DS_Store
+
+# Logs
+*.log
+
+# Environment
+.env
+desktop-app/.env

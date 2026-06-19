@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+  <title>EasyRo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/chat.css">
+  <link rel="stylesheet" href="css/right-panel.css">
+  <link rel="stylesheet" href="css/modal.css">
+</head>
+<body>
+
+  <svg class="bg-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
+    <defs>
+      <radialGradient id="b1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.36)"/><stop offset="100%" stop-color="rgba(175,210,248,0)"/></radialGradient>
+      <radialGradient id="b2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.30)"/><stop offset="100%" stop-color="rgba(190,218,250,0)"/></radialGradient>
+      <radialGradient id="b3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(200,222,252,0.28)"/><stop offset="100%" stop-color="rgba(200,222,252,0)"/></radialGradient>
+      <radialGradient id="b4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(180,212,246,0.32)"/><stop offset="100%" stop-color="rgba(180,212,246,0)"/></radialGradient>
+      <radialGradient id="b5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(195,220,250,0.26)"/><stop offset="100%" stop-color="rgba(195,220,250,0)"/></radialGradient>
+      <radialGradient id="b6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(185,215,248,0.22)"/><stop offset="100%" stop-color="rgba(185,215,248,0)"/></radialGradient>
+      <radialGradient id="b7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(170,208,245,0.28)"/><stop offset="100%" stop-color="rgba(170,208,245,0)"/></radialGradient>
+      <filter id="blur1"><feGaussianBlur stdDeviation="45"/></filter>
+    </defs>
+    <g filter="url(#blur1)">
+      <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#b1)" transform="rotate(-18 120 110)"/>
+      <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#b2)" transform="rotate(12 1280 80)"/>
+      <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#b3)" transform="rotate(25 380 480)"/>
+      <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#b4)" transform="rotate(-10 1050 420)"/>
+      <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#b5)" transform="rotate(8 200 810)"/>
+      <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#b6)" transform="rotate(-20 1340 780)"/>
+      <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#b7)" transform="rotate(5 720 460)"/>
+    </g>
+  </svg>
+
+  <div class="layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <svg class="logo-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="#c2d9f0"/>
+            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="#18283a"/>
+            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="#f5f7fa"/>
+          </svg>
+          <span class="sidebar-logo-text">Easy<em>Ro</em></span>
+        </div>
+        <div class="sidebar-btns">
+          <button class="btn-new btn-sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <line x1="2" y1="4" x2="12" y2="4"/>
+              <line x1="2" y1="7" x2="10" y2="7"/>
+              <line x1="2" y1="10" x2="12" y2="10"/>
+            </svg>
+          </button>
+          <button class="btn-new btn-search" id="searchToggle" title="Search Sessions">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+              <circle cx="6" cy="6" r="4"/>
+              <line x1="9" y1="9" x2="12.5" y2="12.5"/>
+            </svg>
+          </button>
+          <button class="btn-new" id="newChatBtn" title="New Chat">
+            <svg viewBox="0 0 14 14" fill="none">
+              <line x1="7" y1="1" x2="7" y2="13"/>
+              <line x1="1" y1="7" x2="13" y2="7"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="search-bar" id="searchBar">
+        <input type="text" id="searchInput" placeholder="Search">
+        <button class="search-close" id="searchClose">
+          <svg viewBox="0 0 14 14"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
+        </button>
+      </div>
+
+      <div class="session-list" id="sessionList">
+        <div class="session-section-label" id="attachedLabel" style="display:none">Attached</div>
+        <div id="attachedSessions"></div>
+        <div class="session-section-label">Sessions</div>
+        <div id="normalSessions"></div>
+      </div>
+      <div class="sidebar-bottom-space"></div>
+      <div class="sidebar-status" id="sidebarStatus">Starting...</div>
+    </aside>
+
+    <main class="main">
+      <div class="chat-area" id="chatArea">
+        <div class="empty-state active" id="emptyState">
+          <svg class="empty-state-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="#c2d9f0"/>
+            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="#18283a"/>
+            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="#f5f7fa"/>
+          </svg>
+          <div class="empty-state-text">Easy<em>Ro</em></div>
+        </div>
+      </div>
+
+      <div class="prompt-area">
+        <div class="prompt-stack">
+          <!-- Question Modal (hidden by default) -->
+          <div class="question-modal hidden" id="questionModal">
+            <button class="qm-close" id="qmClose" title="Close">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+            </button>
+            <div class="qm-top-bar" id="qmTopBar"></div>
+            <div class="qm-header"><div class="qm-title" id="qmTitle"></div></div>
+            <div class="qm-body" id="qmBody"></div>
+            <div class="qm-divider" id="qmDivider"></div>
+            <div class="qm-footer" id="qmFooter">
+              <div class="qm-input-row">
+                <span class="qm-edit-icon">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V4a1 1 0 0 1 1-1z"/></svg>
+                </span>
+                <input class="qm-text-input" type="text" placeholder="Type your answer here.." id="qmTextInput" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Normal prompt box -->
+          <div class="prompt-box">
+          <div class="prompt-top">
+            <input class="prompt-input" type="text" placeholder="Reply.." />
+          </div>
+          <button class="btn-send" title="Send">
+            <svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 13V3"/>
+              <path d="M4 7l4-4 4 4"/>
+            </svg>
+            <svg class="stop-icon" viewBox="0 0 16 16" fill="currentColor">
+              <rect x="3" y="3" width="10" height="10" rx="1.5"/>
+            </svg>
+          </button>
+          <div class="prompt-bottom">
+            <div class="selector-wrapper">
+              <button class="selector-btn" id="modeSelector"><span>Build</span></button>
+              <div class="popup-menu" id="modePopup">
+                <div class="popup-item selected" data-value="build">Build</div>
+                <div class="popup-item" data-value="plan">Plan</div>
+              </div>
+            </div>
+            <div class="selector-wrapper">
+              <button class="selector-btn" id="modelSelector"><span>Loading...</span></button>
+              <div class="popup-menu" id="modelPopup"></div>
+              <div class="popup-menu variant-popup" id="variantPopup"></div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <aside class="right-panel">
+      <div class="rp-session-name" id="rpSessionName">New Chat</div>
+      <div class="rp-context-label">Context</div>
+      <div class="rp-stats" id="rpStats">
+        <span>0 tokens</span>
+        <span>0% used</span>
+        <span>$0.00 spent</span>
+      </div>
+      <div class="rp-todo-header" id="todoHeader"><span class="todo-arrow">▶</span> Todo</div>
+      <div class="rp-todo-list" id="todoList"></div>
+      <div class="rp-footer">
+        <span class="rp-footer-logo">Easy<em>Ro</em></span>
+        <span class="rp-footer-ver">v0.0.1</span>
+      </div>
+    </aside>
+  </div>
+
+  <script src="js/state.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/chat/messages.js"></script>
+  <script src="js/chat/streaming.js"></script>
+  <script src="js/chat/indicators.js"></script>
+  <script src="js/chat.js"></script>
+  <script src="js/sessions.js"></script>
+  <script src="js/sse.js"></script>
+  <script src="js/modals.js"></script>
+  <script src="js/providers.js"></script>
+  <script src="js/right-panel.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

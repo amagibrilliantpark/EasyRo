@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EasyRo - UI Preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px; font-weight: 600; line-height: 1.55;
+      background: #f5f7fa;
+      padding: 40px;
+    }
+
+    .preview-section {
+      max-width: 800px;
+      margin: 0 auto 60px;
+    }
+
+    .preview-title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 700;
+      color: #18283a;
+      margin-bottom: 8px;
+      letter-spacing: 1px;
+    }
+
+    .preview-subtitle {
+      font-size: 13px;
+      color: #8ea8c0;
+      margin-bottom: 24px;
+    }
+
+    .preview-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 4px 24px rgba(140,185,230,0.12);
+      border: 1px solid rgba(180,210,240,0.30);
+    }
+
+    /* ── Messages ── */
+    .chat-area {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message { max-width: 100%; line-height: 1.6; font-size: 13.5px; font-weight: 500; }
+
+    .ai-message { align-self: flex-start; color: #1e2d3d; max-width: 100%; }
+    .ai-message .msg-text { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; line-height: 1.6; }
+    .ai-message .msg-text strong { font-weight: 700; color: #1a2c40; }
+    .ai-message .msg-text em { font-style: italic; }
+    .ai-message .msg-text code { background: rgba(220,235,250,0.45); padding: 1px 5px; border-radius: 4px; font-size: 13px; }
+
+    .ai-message pre {
+      background: rgba(220,235,250,0.45);
+      border: 1px solid rgba(180,210,240,0.40);
+      border-radius: 8px;
+      padding: 12px 14px;
+      margin-top: 10px;
+      overflow-x: auto;
+      font-size: 12.5px;
+      line-height: 1.55;
+      font-family: 'SF Mono','Fira Code','Consolas',monospace;
+      color: #162536;
+      position: relative;
+    }
+
+    .ai-message pre code {
+      display: block;
+      counter-reset: line;
+    }
+
+    .ai-message pre code .code-line {
+      display: block;
+      padding-left: 3.5em;
+      position: relative;
+    }
+
+    .ai-message pre code .code-line::before {
+      counter-increment: line;
+      content: counter(line);
+      position: absolute;
+      left: 0;
+      width: 2.5em;
+      text-align: right;
+      color: #8ea8c0;
+      font-size: 11px;
+      user-select: none;
+      border-right: 1px solid rgba(180,210,240,0.30);
+      padding-right: 8px;
+      margin-right: 8px;
+    }
+
+    .ai-message pre code .code-line.diff-add {
+      background: rgba(46,160,67,0.12);
+      margin-left: -14px;
+      margin-right: -14px;
+      padding-left: calc(3.5em + 14px);
+      padding-right: 14px;
+    }
+
+    .ai-message pre code .code-line.diff-add::before {
+      color: #2e8b57;
+    }
+
+    .ai-message pre code .code-line.diff-remove {
+      background: rgba(200,50,50,0.12);
+      margin-left: -14px;
+      margin-right: -14px;
+      padding-left: calc(3.5em + 14px);
+      padding-right: 14px;
+    }
+
+    .ai-message pre code .code-line.diff-remove::before {
+      color: #c0392b;
+    }
+
+    .ai-message pre code .code-line.diff-context {
+      color: #6a849e;
+    }
+
+    .user-message { align-self: flex-end; }
+    .user-message .msg-card {
+      background: rgba(200,225,250,0.55);
+      border: 1px solid rgba(170,205,240,0.45);
+      border-radius: 12px;
+      padding: 10px 16px;
+      color: #1a2c40;
+      font-weight: 500;
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    /* ── Indicators ── */
+    .thinking-indicator {
+      align-self: flex-start;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #6a849e;
+      animation: thinking-pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes thinking-pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    .error-indicator {
+      align-self: flex-start;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #c0392b;
+      animation: error-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes error-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    .compaction-indicator {
+      align-self: flex-start;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2980b9;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .compaction-bounce {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .compaction-bounce span {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2980b9;
+      animation: bounce-dot 1.2s ease-in-out infinite;
+    }
+
+    .compaction-bounce span:nth-child(2) { animation-delay: 0.15s; }
+    .compaction-bounce span:nth-child(3) { animation-delay: 0.30s; }
+
+    @keyframes bounce-dot {
+      0%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-8px); }
+    }
+
+    .usage-indicator {
+      align-self: flex-start;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #e67e22;
+      animation: usage-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes usage-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    .streaming-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.1em;
+      background: #4e87bb;
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: cursor-blink 0.8s step-end infinite;
+    }
+
+    @keyframes cursor-blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* ── Question Modal Preview ── */
+    .question-modal-preview {
+      background: rgba(255,255,255,0.85);
+      border: 1px solid rgba(180,210,240,0.50);
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(140,185,230,0.15);
+      backdrop-filter: blur(12px);
+      padding: 20px;
+    }
+
+    .qm-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #1e2d3d;
+      margin-bottom: 16px;
+    }
+
+    .qm-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 12px;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .qm-row:hover { background: rgba(78,135,187,0.10); }
+    .qm-row.active { background: rgba(78,135,187,0.14); }
+
+    .qm-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: rgba(180,210,240,0.35);
+      color: #4e7aa0;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .qm-row.active .qm-num { background: #4e87bb; color: #fff; }
+
+    .qm-label {
+      font-family: 'DM Sans', sans-serif;
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2a3a4e;
+    }
+
+    .qm-arrow {
+      width: 16px;
+      height: 16px;
+      color: #4e87bb;
+      flex-shrink: 0;
+    }
+
+    .qm-row:hover .qm-arrow { opacity: 1; }
+
+    .qm-btn-send {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #4e87bb;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+
+    .qm-btn-send:hover { background: #3d73a5; }
+
+    .qm-btn-back {
+      padding: 7px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(180,210,240,0.45);
+      background: rgba(240,245,252,0.70);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      color: #3a5a7a;
+      cursor: pointer;
+      margin-top: 16px;
+      margin-left: 8px;
+    }
+
+    .section-label {
+      font-family: 'Manrope', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #8ea8c0;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Thinking Indicator -->
+  <div class="preview-section">
+    <div class="preview-title">Indicators</div>
+    <div class="preview-subtitle">Status indicators shown during AI processing</div>
+    <div class="preview-card">
+      <div class="chat-area">
+        <div class="section-label">Thinking</div>
+        <div class="thinking-indicator">Thinking...</div>
+
+        <div class="section-label">Reasoning</div>
+        <div class="thinking-indicator">Reasoning...</div>
+
+        <div class="section-label">Tool Usage</div>
+        <div class="thinking-indicator">Using bash...</div>
+
+        <div class="section-label">Error</div>
+        <div class="error-indicator">Rate limit exceeded. Please wait and try again.</div>
+
+        <div class="section-label">Compaction (animated)</div>
+        <div class="compaction-indicator">
+          <span>Compacting context</span>
+          <span class="compaction-bounce"><span></span><span></span><span></span></span>
+        </div>
+
+        <div class="section-label">Compacted</div>
+        <div class="compaction-indicator">Compacted</div>
+
+        <div class="section-label">Usage Exceed</div>
+        <div class="usage-indicator">Usage limit exceeded.</div>
+
+        <div class="section-label">Streaming Cursor</div>
+        <div style="font-family: 'JetBrains Mono', monospace; font-size: 14px;">
+          <span>local part = Instance.new("Part")</span>
+          <span class="streaming-cursor"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Messages -->
+  <div class="preview-section">
+    <div class="preview-title">Messages</div>
+    <div class="preview-subtitle">User and AI message styles</div>
+    <div class="preview-card">
+      <div class="chat-area">
+        <div class="section-label">User Message</div>
+        <div class="message user-message">
+          <div class="msg-card">Create a part in workspace with a click detector</div>
+        </div>
+
+        <div class="section-label">AI Message (plain text)</div>
+        <div class="message ai-message">
+          <span class="msg-text">Sure! I'll create a <strong>Part</strong> with a <code>ClickDetector</code> inside it. Here's the code:</span>
+        </div>
+
+        <div class="section-label">AI Message (code block with line numbers)</div>
+        <div class="message ai-message">
+          <pre><code>
+            <div class="code-line">local part = Instance.new("Part")</div>
+            <div class="code-line">part.Name = "ClickablePart"</div>
+            <div class="code-line">part.Size = Vector3.new(4, 1, 4)</div>
+            <div class="code-line">part.Position = Vector3.new(0, 5, 0)</div>
+            <div class="code-line">part.Anchored = true</div>
+            <div class="code-line">part.Parent = workspace</div>
+            <div class="code-line"></div>
+            <div class="code-line">local detector = Instance.new("ClickDetector")</div>
+            <div class="code-line">detector.MaxActivationDistance = 10</div>
+            <div class="code-line">detector.Parent = part</div>
+          </code></pre>
+        </div>
+
+        <div class="section-label">AI Message (diff - green for additions, red for removals)</div>
+        <div class="message ai-message">
+          <span class="msg-text">I've updated the script to add a <strong>fire</strong> effect when clicked:</span>
+        </div>
+        <div class="message ai-message">
+          <pre><code>
+            <div class="code-line">local part = Instance.new("Part")</div>
+            <div class="code-line">part.Name = "ClickablePart"</div>
+            <div class="code-line diff-remove">- part.BrickColor = BrickColor.new("Bright blue")</div>
+            <div class="code-line diff-add">+ part.BrickColor = BrickColor.new("Bright red")</div>
+            <div class="code-line">part.Size = Vector3.new(4, 1, 4)</div>
+            <div class="code-line">part.Position = Vector3.new(0, 5, 0)</div>
+            <div class="code-line">part.Anchored = true</div>
+            <div class="code-line">part.Parent = workspace</div>
+            <div class="code-line"></div>
+            <div class="code-line">local detector = Instance.new("ClickDetector")</div>
+            <div class="code-line">detector.MaxActivationDistance = 10</div>
+            <div class="code-line">detector.Parent = part</div>
+            <div class="code-line"></div>
+            <div class="code-line diff-add">+ detector.MouseClick:Connect(function(player)</div>
+            <div class="code-line diff-add">+   print(player.Name .. " clicked the part!")</div>
+            <div class="code-line diff-add">+ end)</div>
+          </code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Question Modal -->
+  <div class="preview-section">
+    <div class="preview-title">Question Modal</div>
+    <div class="preview-subtitle">AI question prompt with options</div>
+    <div class="preview-card">
+      <div class="question-modal-preview">
+        <div class="qm-title">Where should the part be placed?</div>
+
+        <div class="qm-row active">
+          <div class="qm-num">1</div>
+          <div class="qm-label">Center of workspace</div>
+          <svg class="qm-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </div>
+
+        <div class="qm-row">
+          <div class="qm-num">2</div>
+          <div class="qm-label">Above the spawn point</div>
+          <svg class="qm-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </div>
+
+        <div class="qm-row">
+          <div class="qm-num">3</div>
+          <div class="qm-label">Random location</div>
+          <svg class="qm-arrow" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </div>
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button class="qm-btn-send">Confirm & Send</button>
+          <button class="qm-btn-back">Back</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
