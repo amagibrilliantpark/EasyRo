@@ -84,13 +84,7 @@ Each AI session gets its own copy of the `src/` directory. When you switch sessi
 
 ## Platform support
 
-| Platform | Status |
-|----------|--------|
-| Windows  | ✅ Supported (primary) |
-| macOS    | ✅ Supported |
-| Linux    | ✅ Supported |
-
-**Note:** Directory junctions (session isolation) use Windows `mklink /J`. On macOS/Linux, symlinks are used instead. This is handled automatically.
+Windows only.
 
 ---
 
@@ -104,22 +98,11 @@ npm install
 npm start
 ```
 
-### Build for your platform
+### Build
 
 ```bash
 cd desktop-app
-
-# Windows
 npm run build:win
-
-# macOS
-npm run build:mac
-
-# Linux
-npm run build:linux
-
-# All platforms
-npm run build
 ```
 
 Build output goes to `desktop-app/dist/`.
