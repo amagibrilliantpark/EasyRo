@@ -61,12 +61,14 @@ EasyRo/
 ├── default.project.json         # Rojo project config
 ├── opencode.json                # OpenCode config
 ├── AGENTS.md                    # AI behavior instructions
+├── .sessions/                   # Session file snapshots (auto-managed)
 └── desktop-app/
     ├── package.json             # Dependencies and build config
     ├── src/
     │   ├── main/                # Electron main process
     │   │   ├── main.js          # App entry, window, IPC
-    │   │   └── instance-manager.js  # Rojo/OpenCode process management
+    │   │   ├── instance-manager.js  # Rojo/OpenCode process management
+    │   │   └── session-manager.js   # Session file isolation
     │   ├── preload/
     │   │   └── preload.js       # Main ↔ Renderer bridge
     │   └── renderer/
@@ -75,6 +77,10 @@ EasyRo/
     │       └── js/              # UI logic
     └── templates/               # Rojo project templates
 ```
+
+## Session isolation
+
+Each AI chat session has its own snapshot of the `src/` directory, stored in `.sessions/`. When you switch sessions, the current files are saved and the target session's files are restored. This keeps file changes isolated per session without touching Rojo or using junctions.
 
 ## Platform support
 
