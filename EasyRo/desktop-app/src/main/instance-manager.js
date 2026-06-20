@@ -203,12 +203,15 @@ class InstanceManager {
       const child = spawn(rojoPath, args, {
         cwd: project.path,
         stdio: ['pipe', 'pipe', 'pipe'],
-        shell: process.platform === 'win32'
+        shell: false,
+        windowsHide: true
       });
 
       instance.rojoProcess = child;
 
       let started = false;
+      let stdoutBuffer = '';
+      let stderrBuffer = '';
       const timeout = setTimeout(() => {
         if (!started) {
           child.kill();
@@ -217,8 +220,10 @@ class InstanceManager {
       }, 30000);
 
       child.stdout.on('data', (data) => {
-        const output = data.toString();
-        if (output.includes('Server started') || output.includes('Listening') || output.includes('listening')) {
+        stdoutBuffer += data.toString();
+        const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+        console.log('[Rojo stdout]', clean);
+        if (clean.includes('listening') || clean.includes('server started')) {
           if (!started) {
             started = true;
             clearTimeout(timeout);
@@ -228,13 +233,14 @@ class InstanceManager {
       });
 
       child.stderr.on('data', (data) => {
-        const output = data.toString();
-        const lower = output.toLowerCase();
-        if ((lower.includes('error') && !lower.includes('no error')) || lower.includes('fatal') || lower.includes('failed')) {
+        stderrBuffer += data.toString();
+        const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+        console.log('[Rojo stderr]', clean);
+        if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
           if (!started) {
             started = true;
             clearTimeout(timeout);
-            reject(new Error(`Rojo error: ${output}`));
+            reject(new Error(`Rojo error: ${stderrBuffer}`));
           }
         }
       });
@@ -248,6 +254,7 @@ class InstanceManager {
       });
 
       child.on('exit', (code) => {
+        console.log('[Rojo exit]', code);
         if (!started) {
           started = true;
           clearTimeout(timeout);
@@ -276,6 +283,8 @@ class InstanceManager {
       instance.opencodeProcess = child;
 
       let started = false;
+      let stdoutBuffer = '';
+      let stderrBuffer = '';
       const timeout = setTimeout(() => {
         if (!started) {
           child.kill();
@@ -284,8 +293,9 @@ class InstanceManager {
       }, 20000);
 
       child.stdout.on('data', (data) => {
-        const output = data.toString();
-        if (output.includes('Server listening') || output.includes('Ready') || output.includes('listening') || output.includes('ready')) {
+        stdoutBuffer += data.toString();
+        const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+        if (clean.includes('server listening') || clean.includes('ready') || clean.includes('listening')) {
           if (!started) {
             started = true;
             clearTimeout(timeout);
@@ -295,13 +305,13 @@ class InstanceManager {
       });
 
       child.stderr.on('data', (data) => {
-        const output = data.toString();
-        const lower = output.toLowerCase();
-        if ((lower.includes('error') && !lower.includes('no error')) || lower.includes('fatal') || lower.includes('failed')) {
+        stderrBuffer += data.toString();
+        const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+        if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
           if (!started) {
             started = true;
             clearTimeout(timeout);
-            reject(new Error(`OpenCode error: ${output}`));
+            reject(new Error(`OpenCode error: ${stderrBuffer}`));
           }
         }
       });
@@ -413,14 +423,14 @@ class InstanceManager {
     for (const port of [rojoPort, opencodePort]) {
       try {
         if (process.platform === 'win32') {
-          const result = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: 'utf-8', timeout: 5000 }).trim();
+          // Use regex to match exact port (not :30000 when looking for :3000)
+          const result = execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`, { encoding: 'utf-8', timeout: 5000 }).trim();
           if (result) {
-            const lines = result.split('\n');
-            for (const line of lines) {
-              const parts = line.trim().split(/\s+/);
-              const pid = parseInt(parts[parts.length - 1]);
-              if (pid && pid > 0) {
-                try { execSync(`taskkill /PID ${pid} /F`, { timeout: 3000 }); } catch {}
+            const pids = result.split(/\s+/).filter(p => p.trim());
+            for (const pid of pids) {
+              const pidNum = parseInt(pid);
+              if (pidNum && pidNum > 0 && pidNum !== 0) {
+                try { execSync(`taskkill /PID ${pidNum} /F`, { timeout: 3000 }); } catch {}
               }
             }
           }

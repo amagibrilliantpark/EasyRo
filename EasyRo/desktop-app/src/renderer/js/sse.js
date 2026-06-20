@@ -37,6 +37,9 @@ function initSSE() {
       case 'session.idle':
         handleSessionIdle(data.properties);
         break;
+      case 'session.error':
+        handleSessionError(data.properties);
+        break;
     }
   });
 }
@@ -64,9 +67,6 @@ function handlePartUpdate(properties) {
   } else if (part.type === 'step-finish') {
     activeTextPartID = null;
     window.Chat.removeStreamingCursor();
-    if (window.App.isProcessing) {
-      window.Chat.showThinking('Thinking...');
-    }
   } else if (part.type === 'tool') {
     const toolName = part.tool || 'tool';
     if (window.App.isProcessing) {
@@ -92,10 +92,14 @@ function handlePartDelta(properties) {
   }
 }
 
-/** Reset streaming when a full message update arrives. */
+/** Reset streaming when a completed message update arrives. */
 function handleMessageUpdated(properties) {
   if (!properties) return;
-  window.Chat.resetStreamingAccum();
+  const info = properties.info || properties;
+  // Only reset streaming for completed messages, not partial updates during streaming
+  if (info.time && info.time.completed) {
+    window.Chat.finalizeStreaming();
+  }
 }
 
 /** Handle session status changes: busy, compacting, error, or idle. */
@@ -135,6 +139,11 @@ function handleSessionStatus(properties) {
     } else {
       window.Chat.showError(errorStr);
     }
+  } else if (status === 'retry') {
+    const attempt = (statusObj && statusObj.attempt) || 0;
+    const retryMsg = (statusObj && statusObj.message) || 'Retrying...';
+    statusEl.textContent = `Retry ${attempt} — ${retryMsg}`;
+    window.Chat.showThinking(`Retrying (${attempt})...`);
   } else {
     if (isCompacting) {
       isCompacting = false;
@@ -160,8 +169,6 @@ function handleSessionStatus(properties) {
 function handleSessionIdle(properties) {
   if (isCompacting) return;
 
-  if (Date.now() - window.SSE.lastSendMessageTime < 1000) return;
-
   if (properties && window.App.currentSession) {
     const eventSession = properties.sessionID || properties.id;
     if (eventSession && eventSession !== window.App.currentSession) {
@@ -182,6 +189,23 @@ function handleSessionIdle(properties) {
   activeTextPartID = null;
 
   refreshSessionStats();
+}
+
+/** Handle dedicated session.error events from the backend. */
+function handleSessionError(properties) {
+  if (!properties) return;
+  const eventSession = properties.sessionID || properties.id;
+  if (eventSession && eventSession !== window.App.currentSession) return;
+
+  const statusEl = document.getElementById('sidebarStatus');
+  if (statusEl) statusEl.textContent = 'Error';
+  window.Chat.setStopMode(false);
+  isCompacting = false;
+
+  const errorObj = properties.error || properties.message || properties;
+  const errorStr = typeof errorObj === 'string' ? errorObj : (errorObj.message || JSON.stringify(errorObj));
+  window.Chat.showError(errorStr);
+  window.Chat.hideThinking();
 }
 
 /** Handle permission requests (currently a no-op placeholder). */

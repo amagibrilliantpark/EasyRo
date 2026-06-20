@@ -28,11 +28,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     update: (sessionId, data) => ipcRenderer.invoke('session:update', sessionId, data),
     todo: (sessionId) => ipcRenderer.invoke('session:todo', sessionId),
     fork: (sessionId, messageId) => ipcRenderer.invoke('session:fork', sessionId, messageId),
-    switch: (sessionId) => ipcRenderer.invoke('session:switch', sessionId),
     abort: (sessionId) => ipcRenderer.invoke('session:abort', sessionId),
     revert: (sessionId) => ipcRenderer.invoke('session:revert', sessionId),
     unrevert: (sessionId) => ipcRenderer.invoke('session:unrevert', sessionId),
-    messages: (sessionId) => ipcRenderer.invoke('session:messages', sessionId)
+    messages: (sessionId) => ipcRenderer.invoke('session:messages', sessionId),
+    saveCurrent: () => ipcRenderer.invoke('session:save-current'),
+    restore: (sessionId) => ipcRenderer.invoke('session:restore', sessionId),
+    deleteSnapshot: (sessionId) => ipcRenderer.invoke('session:delete-snapshot', sessionId),
+    getActive: () => ipcRenderer.invoke('session:get-active')
   },
 
   // Message sending

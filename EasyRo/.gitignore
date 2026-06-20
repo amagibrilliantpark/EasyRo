@@ -7,11 +7,9 @@
 
 sourcemap.json
 
-# Session isolation
-.sessions/
-
 # Build output
 desktop-app/dist/
+desktop-app/out/
 
 # Node modules
 desktop-app/node_modules/
@@ -23,7 +21,18 @@ desktop-app/.DS_Store
 
 # Logs
 *.log
+debug.log
+npm-debug.log*
 
 # Environment
 .env
 desktop-app/.env
+
+# Session snapshots
+.sessions/
+
+# Electron
+desktop-app/.webpack/
+
+# Optional
+desktop-app/yarn.lock

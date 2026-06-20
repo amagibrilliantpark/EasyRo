@@ -88,53 +88,77 @@ function createSessionCard(session) {
   return card;
 }
 
-/** Switch to a session: load its files, messages, todo list, and token stats. */
+/** Switch to a session: save current files, load target files, load messages/todo. */
 async function selectSession(sessionId) {
-  window.Chat.resetStreamingAccum();
-  window.Chat.hideAllStatusIndicators();
+  if (_switchingSession) return;
+  _switchingSession = true;
 
   try {
-    await window.electronAPI.session.switch(sessionId);
-  } catch (error) {
-    if(window.App.debug)console.error('Failed to switch session directory:', error);
-    return;
-  }
-
-  window.App.currentSession = sessionId;
-
-  document.querySelectorAll('.session-card').forEach(c => {
-    c.classList.toggle('active', c.dataset.id === sessionId);
-  });
-
-  const session = window.App.sessions.find(s => s.id === sessionId);
-  if (session) {
-    window.RightPanel.updateSessionName(session.title || 'Untitled');
-    window.App.currentSessionTokens = session.tokens || null;
-    window.RightPanel.updateContextStats({
-      input: session.tokens ? session.tokens.input : 0,
-      output: session.tokens ? session.tokens.output : 0,
-      reasoning: session.tokens ? session.tokens.reasoning : 0,
-      cost: session.cost || 0
-    });
-  }
-
-  try {
-    const todoResponse = await window.electronAPI.session.todo(sessionId);
-    if (window.App.currentSession !== sessionId) return;
-    const todos = todoResponse.value || todoResponse || [];
-    window.RightPanel.updateTodoList(todos);
-  } catch (error) {
-    if (window.App.currentSession === sessionId) {
-      window.RightPanel.clearTodoList();
+    // 0. Abort in-progress generation
+    if (window.App.isProcessing && window.App.currentSession) {
+      try {
+        await window.electronAPI.session.abort(window.App.currentSession);
+        await new Promise(r => setTimeout(r, 300));
+      } catch (e) {}
+      window.App.isProcessing = false;
     }
-  }
 
-  try {
-    const messages = await window.electronAPI.session.messages(sessionId);
-    if (window.App.currentSession !== sessionId) return;
-    window.Chat.renderMessages(messages);
-  } catch (error) {
-    // ignore
+    // 1. Save current session's files
+    if (window.App.currentSession && window.App.currentSession !== sessionId) {
+      const saveResult = await window.electronAPI.session.saveCurrent();
+      if (!saveResult.success) {
+        console.error('Failed to save session:', saveResult.error);
+        return;
+      }
+    }
+
+    // 2. Restore new session's files
+    const restoreResult = await window.electronAPI.session.restore(sessionId);
+    if (!restoreResult.success) {
+      console.error('Failed to restore session:', restoreResult.error);
+      return;
+    }
+
+    // 3. Update UI
+    window.Chat.resetStreamingAccum();
+    window.Chat.hideAllStatusIndicators();
+    window.App.currentSession = sessionId;
+
+    document.querySelectorAll('.session-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.id === sessionId);
+    });
+
+    const session = window.App.sessions.find(s => s.id === sessionId);
+    if (session) {
+      window.RightPanel.updateSessionName(session.title || 'Untitled');
+      window.App.currentSessionTokens = session.tokens || null;
+      window.RightPanel.updateContextStats({
+        input: session.tokens ? session.tokens.input : 0,
+        output: session.tokens ? session.tokens.output : 0,
+        reasoning: session.tokens ? session.tokens.reasoning : 0,
+        cost: session.cost || 0
+      });
+    }
+
+    // 4. Load todo and messages
+    try {
+      const todoResponse = await window.electronAPI.session.todo(sessionId);
+      if (window.App.currentSession !== sessionId) return;
+      const todos = todoResponse.value || todoResponse || [];
+      window.RightPanel.updateTodoList(todos);
+    } catch (error) {
+      if (window.App.currentSession === sessionId) {
+        window.RightPanel.clearTodoList();
+      }
+    }
+
+    try {
+      const messages = await window.electronAPI.session.messages(sessionId);
+      if (window.App.currentSession !== sessionId) return;
+      window.Chat.renderMessages(messages);
+    } catch (error) {}
+  } finally {
+    _switchingSession = false;
   }
 }
 
@@ -144,12 +168,12 @@ async function deleteSession(sessionId) {
     if (window.App.isProcessing && window.App.currentSession === sessionId) {
       try {
         await window.electronAPI.session.abort(sessionId);
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
 
     await window.electronAPI.session.delete(sessionId);
+    try { await window.electronAPI.session.deleteSnapshot(sessionId); } catch (e) {}
+
     window.App.sessions = window.App.sessions.filter(s => s.id !== sessionId);
     renderSessionList();
 
@@ -237,6 +261,9 @@ function searchSessions(query) {
 // Guard against concurrent session creation
 let _sessionCreatePromise = null;
 
+// Guard against concurrent session switching
+let _switchingSession = false;
+
 /** Get the current session ID, or create a new one if none exists. */
 async function ensureSession() {
   if (window.App.currentSession) return window.App.currentSession;
@@ -244,15 +271,26 @@ async function ensureSession() {
 
   _sessionCreatePromise = (async () => {
     try {
+      // Save old session if it exists in the session list
+      const lastActive = await window.electronAPI.session.getActive();
+      if (lastActive) {
+        const exists = window.App.sessions.some(s => s.id === lastActive);
+        if (exists) {
+          try { await window.electronAPI.session.saveCurrent(); } catch (e) {}
+        }
+      }
+
       const session = await window.electronAPI.session.create();
       const newSession = typeof session === 'string' ? { id: session, title: '' } : session;
+
+      // Restore snapshot or create empty dirs for new session
+      try { await window.electronAPI.session.restore(newSession.id); } catch (e) {}
+
       if (!newSession.title) newSession.title = '';
       window.App.currentSession = newSession.id;
       newSession.title = newSession.title || '';
       window.App.sessions.unshift(newSession);
       renderSessionList();
-
-      await window.electronAPI.session.switch(newSession.id);
 
       window.RightPanel.updateSessionName('New Chat');
 

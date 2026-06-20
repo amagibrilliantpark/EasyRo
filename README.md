@@ -57,7 +57,6 @@ Rojo (`rojo.exe`) is included in the project — you don't need to install it se
 ```
 EasyRo/
 ├── src/                         # Roblox game source (synced via Rojo)
-├── .sessions/                   # Session isolation (auto-created)
 ├── rojo.exe                     # Rojo binary
 ├── default.project.json         # Rojo project config
 ├── opencode.json                # OpenCode config
@@ -67,8 +66,7 @@ EasyRo/
     ├── src/
     │   ├── main/                # Electron main process
     │   │   ├── main.js          # App entry, window, IPC
-    │   │   ├── instance-manager.js  # Rojo/OpenCode process management
-    │   │   └── session-manager.js   # Session isolation (junctions)
+    │   │   └── instance-manager.js  # Rojo/OpenCode process management
     │   ├── preload/
     │   │   └── preload.js       # Main ↔ Renderer bridge
     │   └── renderer/
@@ -77,10 +75,6 @@ EasyRo/
     │       └── js/              # UI logic
     └── templates/               # Rojo project templates
 ```
-
-## Session isolation
-
-Each AI session gets its own copy of the `src/` directory. When you switch sessions, the app swaps a directory junction so `src/` points to the active session's files. Different sessions don't interfere with each other.
 
 ## Platform support
 
