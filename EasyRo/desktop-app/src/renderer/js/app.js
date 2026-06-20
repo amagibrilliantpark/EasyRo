@@ -70,9 +70,15 @@ document.addEventListener('DOMContentLoaded', () => {
     window.Sessions.searchSessions(this.value.toLowerCase());
   });
 
-  // ── New chat — just deselect current session, don't create ──
-  document.getElementById('newChatBtn').addEventListener('click', (e) => {
+  // ── New chat — save current session, then deselect ──
+  document.getElementById('newChatBtn').addEventListener('click', async (e) => {
     e.stopPropagation();
+
+    // Save current session's files
+    if (window.App.currentSession) {
+      try { await window.electronAPI.session.saveCurrent(); } catch (e) {}
+    }
+
     window.App.currentSession = null;
     window.Chat.resetStreamingAccum();
     window.Chat.hideAllStatusIndicators();

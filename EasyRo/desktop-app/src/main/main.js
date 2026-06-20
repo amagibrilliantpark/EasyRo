@@ -5,25 +5,47 @@ const { SessionManager } = require('./session-manager');
 
 let mainWindow;
 const instanceManager = new InstanceManager();
-let sessionManager = null;
+let sessionManager;
 
 const PROJECT_ID = 'default';
 
 /**
- * Walk up from the app directory to find default.project.json.
- * Falls back to three levels up from main.js.
+ * Walk up directories to find default.project.json.
+ * Handles: development, unpacked build, portable exe (extracted to temp),
+ * and NSIS install.
  */
 function getProjectPath() {
   const fs = require('fs');
-  let dir = __dirname;
-  for (let i = 0; i < 5; i++) {
-    const candidate = path.join(dir, 'default.project.json');
-    if (fs.existsSync(candidate)) return dir;
-    const parent = path.dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
+
+  function walkUp(startDir, maxDepth) {
+    let dir = startDir;
+    for (let i = 0; i < maxDepth; i++) {
+      const candidate = path.join(dir, 'default.project.json');
+      if (fs.existsSync(candidate)) return dir;
+      const parent = path.dirname(dir);
+      if (parent === dir) break;
+      dir = parent;
+    }
+    return null;
   }
-  // Fallback: two levels up from main.js (src/main -> desktop-app -> EasyRo project root)
+
+  // 1) Portable exe: Electron sets this to the dir containing the original .exe
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    const fromPortable = walkUp(process.env.PORTABLE_EXECUTABLE_DIR, 10);
+    if (fromPortable) return fromPortable;
+  }
+
+  // 2) Unpacked / installed exe: walk from executable location
+  if (process.execPath) {
+    const fromExe = walkUp(path.dirname(process.execPath), 10);
+    if (fromExe) return fromExe;
+  }
+
+  // 3) Development: walk from __dirname
+  const fromDirname = walkUp(__dirname, 10);
+  if (fromDirname) return fromDirname;
+
+  // 4) Last resort
   return path.resolve(__dirname, '..', '..', '..');
 }
 
@@ -93,9 +115,6 @@ app.whenReady().then(async () => {
     console.log('[EasyRo] Project path:', project.path);
     console.log('[EasyRo] Project name:', project.name);
 
-    sessionManager = new SessionManager(project.path);
-    sessionManager.init();
-
     const ports = instanceManager.allocatePorts(project.id);
     console.log('[EasyRo] Starting Rojo on port', ports.rojo, 'and OpenCode on port', ports.opencode);
     await instanceManager.startInstance(project, ports);
@@ -116,7 +135,12 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', async () => {
-  if (sessionManager) sessionManager.cleanup();
+  if (sessionManager) {
+    const activeId = sessionManager.getActiveSession();
+    if (activeId) {
+      try { sessionManager.saveCurrentTo(activeId); } catch (e) {}
+    }
+  }
   await instanceManager.killAll();
   cleanupAllSSEBridges();
   if (process.platform !== 'darwin') app.quit();
@@ -125,6 +149,8 @@ app.on('window-all-closed', async () => {
 /** Register all IPC handlers for renderer ↔ main communication. */
 function setupIpcHandlers() {
   const project = getProject();
+  sessionManager = new SessionManager(project.path);
+  sessionManager.init();
 
   // Instance management
   ipcMain.handle('instance:start', async () => {
@@ -154,10 +180,6 @@ function setupIpcHandlers() {
     const client = instanceManager.getClient(project.id);
     if (!client) throw new Error('Instance not running');
     const session = await client.createSession(title);
-    const sessionId = typeof session === 'string' ? session : session.id;
-    if (sessionManager && sessionId) {
-      sessionManager.createSessionDir(sessionId);
-    }
     return session;
   });
 
@@ -165,9 +187,6 @@ function setupIpcHandlers() {
     const client = instanceManager.getClient(project.id);
     if (!client) throw new Error('Instance not running');
     await client.deleteSession(sessionId);
-    if (sessionManager && sessionId) {
-      sessionManager.deleteSessionDir(sessionId);
-    }
     return true;
   });
 
@@ -187,12 +206,6 @@ function setupIpcHandlers() {
     const client = instanceManager.getClient(project.id);
     if (!client) throw new Error('Instance not running');
     return await client.forkSession(sessionId, messageId);
-  });
-
-  ipcMain.handle('session:switch', async (event, sessionId) => {
-    if (!sessionManager) throw new Error('Session manager not initialized');
-    sessionManager.switchToSession(sessionId);
-    return true;
   });
 
   ipcMain.handle('session:abort', async (event, sessionId) => {
@@ -317,6 +330,39 @@ function setupIpcHandlers() {
     } catch {
       return { healthy: false };
     }
+  });
+
+  // Session file isolation
+  ipcMain.handle('session:save-current', async () => {
+    try {
+      const id = sessionManager.getActiveSession();
+      if (id) sessionManager.saveCurrentTo(id);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('session:restore', async (event, sessionId) => {
+    try {
+      sessionManager.restoreFrom(sessionId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('session:delete-snapshot', async (event, sessionId) => {
+    try {
+      sessionManager.deleteSnapshot(sessionId);
+      return { success: true };
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  });
+
+  ipcMain.handle('session:get-active', async () => {
+    return sessionManager ? sessionManager.getActiveSession() : null;
   });
 }
 
