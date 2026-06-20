@@ -1,7 +1,33 @@
 # Logs
 *.log
 debug.log
+npm-debug.log*
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# Environment
+.env
+EasyRo/.env
+EasyRo/desktop-app/.env
+
+# Roblox
+/EasyRo.rbxlx
+/*.rbxlx.lock
+/*.rbxl.lock
+sourcemap.json
+
+# Build output
+EasyRo/desktop-app/dist/
+EasyRo/desktop-app/out/
+
+# Node modules
+EasyRo/desktop-app/node_modules/
+
+# Electron
+EasyRo/desktop-app/.webpack/
+EasyRo/desktop-app/yarn.lock
+
+# Session snapshots
+EasyRo/.sessions/
