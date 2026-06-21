@@ -1,7 +1,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
+const fs = require('fs');
 const { InstanceManager } = require('./instance-manager');
 const { SessionManager } = require('./session-manager');
+const log = require('./logger');
 
 let mainWindow;
 const instanceManager = new InstanceManager();
@@ -10,49 +12,52 @@ let sessionManager;
 const PROJECT_ID = 'default';
 
 /**
- * Walk up directories to find default.project.json.
- * Handles: development, unpacked build, portable exe (extracted to temp),
- * and NSIS install.
+ * Ensure the user has a writable project directory with all required files.
+ *
+ * - Development: project files exist in the source tree → return directly.
+ * - Packaged (portable / NSIS): copy project template from app resources
+ *   to a writable user-data directory on first run.
+ *
+ * Returns the absolute path to the project directory.
  */
-function getProjectPath() {
-  const fs = require('fs');
+function ensureUserProject() {
+  // ── Development mode: project files live next to desktop-app/ ──
+  const devProjectPath = path.resolve(__dirname, '..', '..', '..');
+  if (fs.existsSync(path.join(devProjectPath, 'default.project.json'))) {
+    log.info('SYSTEM', 'Dev mode: using source-tree project path');
+    return devProjectPath;
+  }
 
-  function walkUp(startDir, maxDepth) {
-    let dir = startDir;
-    for (let i = 0; i < maxDepth; i++) {
-      const candidate = path.join(dir, 'default.project.json');
-      if (fs.existsSync(candidate)) return dir;
-      const parent = path.dirname(dir);
-      if (parent === dir) break;
-      dir = parent;
+  // ── Packaged mode ──
+  const userProjectDir = path.join(app.getPath('userData'), 'project');
+  const marker = path.join(userProjectDir, 'default.project.json');
+
+  if (fs.existsSync(marker)) {
+    log.info('SYSTEM', 'User project already initialised at', userProjectDir);
+  } else {
+    const templateDir = path.join(process.resourcesPath, 'project');
+    if (!fs.existsSync(templateDir)) {
+      throw new Error(
+        `Project template not found at ${templateDir}. ` +
+        'Ensure default.project.json, opencode.json, AGENTS.md and src/ are bundled as extraResources.'
+      );
     }
-    return null;
+    log.info('SYSTEM', 'Initialising user project from template →', userProjectDir);
+    fs.cpSync(templateDir, userProjectDir, { recursive: true });
   }
 
-  // 1) Portable exe: Electron sets this to the dir containing the original .exe
-  if (process.env.PORTABLE_EXECUTABLE_DIR) {
-    const fromPortable = walkUp(process.env.PORTABLE_EXECUTABLE_DIR, 10);
-    if (fromPortable) return fromPortable;
+  // Guarantee Rojo $path directories exist (electron-builder may skip empty dirs)
+  for (const sub of ['server', 'client', 'shared']) {
+    const dir = path.join(userProjectDir, 'src', sub);
+    fs.mkdirSync(dir, { recursive: true });
   }
 
-  // 2) Unpacked / installed exe: walk from executable location
-  if (process.execPath) {
-    const fromExe = walkUp(path.dirname(process.execPath), 10);
-    if (fromExe) return fromExe;
-  }
-
-  // 3) Development: walk from __dirname
-  const fromDirname = walkUp(__dirname, 10);
-  if (fromDirname) return fromDirname;
-
-  // 4) Last resort
-  return path.resolve(__dirname, '..', '..', '..');
+  return userProjectDir;
 }
 
 /** Read project config and return { id, name, path }. */
 function getProject() {
-  const fs = require('fs');
-  const projectPath = getProjectPath();
+  const projectPath = ensureUserProject();
   const projectJson = path.join(projectPath, 'default.project.json');
   let name = 'EasyRo';
   try {
@@ -94,10 +99,10 @@ function createWindow() {
 
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 
-  // Forward renderer logs to main process terminal for debugging
+  // Forward renderer logs to main process logger
   mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    const prefix = level === 0 ? '[Renderer]' : level === 1 ? '[Renderer WARN]' : '[Renderer ERR]';
-    console.log(prefix, message);
+    const lvl = level === 0 ? 'info' : level === 1 ? 'warn' : 'error';
+    log[lvl]('RENDERER', message);
   });
 
   if (process.argv.includes('--dev')) {
@@ -112,18 +117,18 @@ app.whenReady().then(async () => {
   // Auto-start the project instance
   try {
     const project = getProject();
-    console.log('[EasyRo] Project path:', project.path);
-    console.log('[EasyRo] Project name:', project.name);
+    log.info('SYSTEM', 'Project path:', project.path);
+    log.info('SYSTEM', 'Project name:', project.name);
 
     const ports = instanceManager.allocatePorts(project.id);
-    console.log('[EasyRo] Starting Rojo on port', ports.rojo, 'and OpenCode on port', ports.opencode);
+    log.info('SYSTEM', 'Starting Rojo on port', ports.rojo, 'and OpenCode on port', ports.opencode);
     await instanceManager.startInstance(project, ports);
     setupSSEBridge(project.id, ports.opencode);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('project:ready', { projectId: project.id, name: project.name, ports });
     }
   } catch (error) {
-    console.error('[EasyRo] Startup error:', error.message);
+    log.error('SYSTEM', 'Startup error:', error.message);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('project:error', { error: error.message });
     }
@@ -152,8 +157,15 @@ function setupIpcHandlers() {
   sessionManager = new SessionManager(project.path);
   sessionManager.init();
 
+  // Renderer-side logging
+  ipcMain.handle('log:write', (event, level, category, message) => {
+    const lvl = ['info', 'warn', 'error'].includes(level) ? level : 'info';
+    log[lvl](category, message);
+  });
+
   // Instance management
   ipcMain.handle('instance:start', async () => {
+    log.info('IPC', 'instance:start');
     const ports = instanceManager.allocatePorts(project.id);
     await instanceManager.startInstance(project, ports);
     setupSSEBridge(project.id, ports.opencode);
@@ -161,6 +173,7 @@ function setupIpcHandlers() {
   });
 
   ipcMain.handle('instance:stop', async () => {
+    log.info('IPC', 'instance:stop');
     await instanceManager.stopInstance(project.id);
     cleanupSSEBridge(project.id);
   });
@@ -239,12 +252,14 @@ function setupIpcHandlers() {
   ipcMain.handle('message:send', async (event, sessionId, text, model) => {
     const client = instanceManager.getClient(project.id);
     if (!client) throw new Error('Instance not running');
+    log.info('IPC', 'message:send', { sessionId });
     return await client.sendMessage(sessionId, text, model);
   });
 
   ipcMain.handle('message:sendAsync', async (event, sessionId, text, model, agent) => {
     const client = instanceManager.getClient(project.id);
     if (!client) throw new Error('Instance not running');
+    log.info('IPC', 'message:sendAsync', { sessionId, agent });
     await client.sendMessageAsync(sessionId, text, model, agent);
     return true;
   });
@@ -375,7 +390,7 @@ const sseBridges = new Map();
  */
 function setupSSEBridge(projectId, port) {
   cleanupSSEBridge(projectId);
-  console.log('[SSE Bridge] Connecting to port', port);
+  log.info('SSE', 'Connecting to port', port);
 
   const bridge = { req: null, reconnectTimer: null, destroyed: false };
   sseBridges.set(projectId, bridge);
@@ -385,7 +400,7 @@ function setupSSEBridge(projectId, port) {
 
     const http = require('http');
     const req = http.get(`http://127.0.0.1:${port}/event`, (res) => {
-      console.log('[SSE Bridge] Connected, status:', res.statusCode);
+      log.info('SSE', 'Connected, status:', res.statusCode);
       let buffer = '';
       let dataBuffer = '';
 
@@ -418,14 +433,14 @@ function setupSSEBridge(projectId, port) {
 
       res.on('end', () => {
         if (bridge.destroyed) return;
-        console.log('[SSE Bridge] Stream ended');
+        log.info('SSE', 'Stream ended');
         bridge.reconnectTimer = setTimeout(connectSSE, 2000);
       });
     });
 
     req.on('error', (err) => {
       if (bridge.destroyed) return;
-      console.error('[SSE Bridge] Connection error:', err.message);
+      log.error('SSE', 'Connection error:', err.message);
       bridge.reconnectTimer = setTimeout(connectSSE, 3000);
     });
 

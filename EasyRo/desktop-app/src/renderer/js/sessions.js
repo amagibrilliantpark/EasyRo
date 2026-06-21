@@ -7,6 +7,7 @@ async function loadSessions() {
     renderSessionList();
   } catch (error) {
     if(window.App.debug)console.error('Failed to load sessions:', error);
+    window.electronAPI.log('error', 'RENDERER', 'Failed to load sessions: ' + error.message);
   }
 }
 
@@ -108,6 +109,7 @@ async function selectSession(sessionId) {
       const saveResult = await window.electronAPI.session.saveCurrent();
       if (!saveResult.success) {
         console.error('Failed to save session:', saveResult.error);
+        window.electronAPI.log('error', 'RENDERER', 'Failed to save session: ' + saveResult.error);
         return;
       }
     }
@@ -116,6 +118,7 @@ async function selectSession(sessionId) {
     const restoreResult = await window.electronAPI.session.restore(sessionId);
     if (!restoreResult.success) {
       console.error('Failed to restore session:', restoreResult.error);
+      window.electronAPI.log('error', 'RENDERER', 'Failed to restore session: ' + restoreResult.error);
       return;
     }
 
@@ -123,6 +126,7 @@ async function selectSession(sessionId) {
     window.Chat.resetStreamingAccum();
     window.Chat.hideAllStatusIndicators();
     window.App.currentSession = sessionId;
+    window.electronAPI.log('info', 'RENDERER', 'Switched to session: ' + sessionId);
 
     document.querySelectorAll('.session-card').forEach(c => {
       c.classList.toggle('active', c.dataset.id === sessionId);
@@ -189,6 +193,7 @@ async function deleteSession(sessionId) {
     }
   } catch (error) {
     if(window.App.debug)console.error('Failed to delete session:', error);
+    window.electronAPI.log('error', 'RENDERER', 'Failed to delete session: ' + error.message);
   }
 }
 
@@ -206,6 +211,7 @@ async function renameSession(sessionId, title) {
     renderSessionList();
   } catch (error) {
     if(window.App.debug)console.error('Failed to rename session:', error);
+    window.electronAPI.log('error', 'RENDERER', 'Failed to rename session: ' + error.message);
   }
 }
 
@@ -301,6 +307,7 @@ async function ensureSession() {
       return newSession.id;
     } catch (error) {
       if(window.App.debug)console.error('Failed to create session:', error);
+      window.electronAPI.log('error', 'RENDERER', 'Failed to create session: ' + error.message);
       throw error;
     }
   })();

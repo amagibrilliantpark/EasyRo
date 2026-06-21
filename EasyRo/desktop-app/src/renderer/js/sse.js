@@ -238,7 +238,7 @@ async function refreshSessionStats() {
       }
     }
   } catch (error) {
-    // ignore
+    window.electronAPI.log('error', 'RENDERER', 'Session stats refresh error: ' + error.message);
   }
 }
 
