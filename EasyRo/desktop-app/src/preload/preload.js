@@ -92,5 +92,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const handler = (event, data) => callback(data);
     ipcRenderer.on('sse:event', handler);
     return () => ipcRenderer.removeListener('sse:event', handler);
+  },
+
+  // Logging (sends logs to main process file logger)
+  log: (level, category, message) => {
+    ipcRenderer.invoke('log:write', level, category, message);
   }
 });

@@ -28,6 +28,23 @@
       {
         "from": "../rojo.exe",
         "to": "rojo.exe"
+      },
+      {
+        "from": "../default.project.json",
+        "to": "project/default.project.json"
+      },
+      {
+        "from": "../opencode.json",
+        "to": "project/opencode.json"
+      },
+      {
+        "from": "../AGENTS.md",
+        "to": "project/AGENTS.md"
+      },
+      {
+        "from": "../src",
+        "to": "project/src",
+        "filter": ["**/*", "**/.*"]
       }
     ],
     "win": {
@@ -72,6 +89,10 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "EasyRo",
+      "deleteAppDataOnUninstall": true,
+      "installerLanguages": ["en_US"],
+      "multiLanguageInstaller": false,
+      "include": "installer-custom.nsh",
       "artifactName": "${productName} Setup.${ext}"
     }
   },

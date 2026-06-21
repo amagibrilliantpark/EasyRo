@@ -1,6 +1,7 @@
 const { spawn, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const log = require('./logger');
 
 /** HTTP client for the OpenCode serve API. */
 class OpenCodeClient {
@@ -222,7 +223,7 @@ class InstanceManager {
       child.stdout.on('data', (data) => {
         stdoutBuffer += data.toString();
         const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-        console.log('[Rojo stdout]', clean);
+        log.info('ROJO', 'stdout:', clean.trim());
         if (clean.includes('listening') || clean.includes('server started')) {
           if (!started) {
             started = true;
@@ -235,7 +236,7 @@ class InstanceManager {
       child.stderr.on('data', (data) => {
         stderrBuffer += data.toString();
         const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-        console.log('[Rojo stderr]', clean);
+        log.warn('ROJO', 'stderr:', clean.trim());
         if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
           if (!started) {
             started = true;
@@ -254,7 +255,7 @@ class InstanceManager {
       });
 
       child.on('exit', (code) => {
-        console.log('[Rojo exit]', code);
+        log.info('ROJO', 'Exited with code', code);
         if (!started) {
           started = true;
           clearTimeout(timeout);
@@ -295,6 +296,7 @@ class InstanceManager {
       child.stdout.on('data', (data) => {
         stdoutBuffer += data.toString();
         const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+        log.info('OPENCODE', 'stdout:', clean.trim());
         if (clean.includes('server listening') || clean.includes('ready') || clean.includes('listening')) {
           if (!started) {
             started = true;
@@ -307,6 +309,7 @@ class InstanceManager {
       child.stderr.on('data', (data) => {
         stderrBuffer += data.toString();
         const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+        log.warn('OPENCODE', 'stderr:', clean.trim());
         if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
           if (!started) {
             started = true;
@@ -325,6 +328,7 @@ class InstanceManager {
       });
 
       child.on('exit', (code) => {
+        log.info('OPENCODE', 'Exited with code', code);
         if (!started) {
           started = true;
           clearTimeout(timeout);
@@ -345,12 +349,16 @@ class InstanceManager {
     for (let i = 0; i < maxRetries; i++) {
       try {
         const data = await instance.client.health();
-        if (data && data.healthy) return true;
+        if (data && data.healthy) {
+          log.info('SYSTEM', 'Health check passed on attempt', i + 1);
+          return true;
+        }
       } catch {
         // not ready yet
       }
       await this.sleep(500);
     }
+    log.error('SYSTEM', 'Health check timeout after', maxRetries, 'attempts');
     throw new Error('Health check timeout');
   }
 
@@ -407,14 +415,23 @@ class InstanceManager {
     };
   }
 
-  /** Find rojo.exe in the project dir, parent dir, or fall back to PATH. */
+  /** Find rojo.exe in the project dir, packaged resources, parent dir, or fall back to PATH. */
   findRojoExecutable(projectPath) {
+    // 1) Bundled alongside the project (dev or user-data copy)
     const localRojo = path.join(projectPath, 'rojo.exe');
     if (fs.existsSync(localRojo)) return localRojo;
 
+    // 2) Packaged as an extraResource (NSIS / portable → resources/rojo.exe)
+    if (process.resourcesPath) {
+      const resourcesRojo = path.join(process.resourcesPath, 'rojo.exe');
+      if (fs.existsSync(resourcesRojo)) return resourcesRojo;
+    }
+
+    // 3) Parent directory (portable exe sitting next to the project folder)
     const parentRojo = path.join(path.dirname(projectPath), 'rojo.exe');
     if (fs.existsSync(parentRojo)) return parentRojo;
 
+    // 4) System PATH
     return 'rojo';
   }
 

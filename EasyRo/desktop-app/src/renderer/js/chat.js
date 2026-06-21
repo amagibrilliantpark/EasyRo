@@ -34,9 +34,11 @@ async function sendMessage() {
       agent || 'build'
     );
     if (typeof window.SSE !== 'undefined') window.SSE.lastSendMessageTime = Date.now();
+    window.electronAPI.log('info', 'RENDERER', 'Message sent to session: ' + sessionId);
   } catch (error) {
     Chat.Indicators.hideAllStatusIndicators();
     Chat.Messages.appendMessage('assistant', 'Error: ' + error.message);
+    window.electronAPI.log('error', 'RENDERER', 'Send message error: ' + error.message);
     setStopMode(false);
   }
 }
