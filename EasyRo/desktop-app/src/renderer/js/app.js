@@ -48,13 +48,75 @@ document.addEventListener('DOMContentLoaded', () => {
   searchToggle.addEventListener('click', (e) => {
     e.stopPropagation();
     if (sidebar.classList.contains('collapsed')) {
-      sidebar.classList.remove('collapsed');
+      // Open center search modal when sidebar is collapsed
+      openCenterSearchModal();
+    } else {
+      // Open sidebar search when sidebar is expanded
+      sidebarLogo.classList.add('hidden');
+      sidebarBtns.classList.add('hidden');
+      searchBar.classList.add('active');
+      searchInput.focus();
     }
-    sidebarLogo.classList.add('hidden');
-    sidebarBtns.classList.add('hidden');
-    searchBar.classList.add('active');
-    searchInput.focus();
   });
+
+  // ── Center Search Modal ──
+  const centerSearchModal = document.getElementById('centerSearchModal');
+  const centerSearchBackdrop = document.getElementById('centerSearchBackdrop');
+  const centerSearchClose = document.getElementById('centerSearchClose');
+  const centerSearchInput = document.getElementById('centerSearchInput');
+  const centerSearchResults = document.getElementById('centerSearchResults');
+
+  function openCenterSearchModal() {
+    centerSearchModal.classList.remove('hidden');
+    centerSearchInput.value = '';
+    centerSearchInput.focus();
+    updateCenterSearchResults('');
+  }
+
+  function closeCenterSearchModal() {
+    centerSearchModal.classList.add('hidden');
+    centerSearchInput.value = '';
+  }
+
+  centerSearchClose.addEventListener('click', closeCenterSearchModal);
+  centerSearchBackdrop.addEventListener('click', closeCenterSearchModal);
+
+  centerSearchInput.addEventListener('input', function() {
+    updateCenterSearchResults(this.value.toLowerCase());
+  });
+
+  centerSearchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeCenterSearchModal();
+    }
+  });
+
+  function updateCenterSearchResults(query) {
+    const sessions = window.Sessions.getAllSessions();
+    const filtered = sessions.filter(s => 
+      s.title && s.title.toLowerCase().includes(query)
+    );
+
+    if (filtered.length === 0) {
+      centerSearchResults.innerHTML = '<div class="center-search-empty">No sessions found</div>';
+      return;
+    }
+
+    centerSearchResults.innerHTML = filtered.map(session => `
+      <button class="center-search-result-item" data-session-id="${session.id}">
+        <div class="center-search-result-title">${session.title || 'Untitled'}</div>
+      </button>
+    `).join('');
+
+    // Add click handlers
+    centerSearchResults.querySelectorAll('.center-search-result-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const sessionId = item.dataset.sessionId;
+        window.Sessions.selectSession(sessionId);
+        closeCenterSearchModal();
+      });
+    });
+  }
 
   searchClose.addEventListener('click', (e) => {
     e.stopPropagation();

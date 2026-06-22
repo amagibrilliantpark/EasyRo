@@ -56,27 +56,13 @@ Rojo (`rojo.exe`) is included in the project — you don't need to install it se
 
 ```
 EasyRo/
-├── src/                         # Roblox game source (synced via Rojo)
+├── src/                         # Roblox game source
+├── desktop-app/                 # Electron desktop application
 ├── rojo.exe                     # Rojo binary
 ├── default.project.json         # Rojo project config
 ├── opencode.json                # OpenCode config
 ├── AGENTS.md                    # AI behavior instructions
-├── .sessions/                   # Session file snapshots (auto-managed)
-└── desktop-app/
-    ├── package.json             # Dependencies and build config
-    ├── src/
-    │   ├── main/                # Electron main process
-    │   │   ├── main.js          # App entry, window, IPC
-    │   │   ├── instance-manager.js  # Rojo/OpenCode process management
-    │   │   ├── session-manager.js   # Session file isolation
-    │   │   └── logger.js        # File-based structured logger
-    │   ├── preload/
-    │   │   └── preload.js       # Main ↔ Renderer bridge
-    │   └── renderer/
-    │       ├── index.html       # App layout
-    │       ├── css/             # Styles
-    │       └── js/              # UI logic
-    └── templates/               # Rojo project templates
+└── .sessions/                   # Session file snapshots
 ```
 
 ## Session isolation

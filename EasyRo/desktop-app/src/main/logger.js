@@ -8,6 +8,7 @@ const { app } = require('electron');
  * - Writes structured logs to a .log file
  * - Keeps console output in dev mode (--dev flag)
  * - Rotates log file when it exceeds MAX_SIZE
+ * - Uses async buffering for better performance
  */
 class Logger {
   constructor() {
@@ -16,6 +17,10 @@ class Logger {
     this.logFile = null;
     this.MAX_SIZE = 5 * 1024 * 1024; // 5 MB
     this._initialized = false;
+    this._buffer = [];
+    this._flushInterval = 1000; // 1 second
+    this._flushTimer = null;
+    this._isFlushing = false;
   }
 
   /** Initialize log directory and file path. Called lazily on first write. */
@@ -35,6 +40,44 @@ class Logger {
 
     // Rotate if file already exceeds max size
     this._rotateIfNeeded();
+
+    // Start periodic flush
+    this._startFlushTimer();
+  }
+
+  /** Start periodic flush timer. */
+  _startFlushTimer() {
+    if (this._flushTimer) return;
+    this._flushTimer = setInterval(() => {
+      this._flush();
+    }, this._flushInterval);
+  }
+
+  /** Stop periodic flush timer. */
+  _stopFlushTimer() {
+    if (this._flushTimer) {
+      clearInterval(this._flushTimer);
+      this._flushTimer = null;
+    }
+  }
+
+  /** Flush buffered logs to disk. */
+  async _flush() {
+    if (this._isFlushing || this._buffer.length === 0) return;
+    
+    this._isFlushing = true;
+    const bufferToFlush = this._buffer;
+    this._buffer = [];
+
+    try {
+      if (bufferToFlush.length > 0) {
+        await fs.promises.appendFile(this.logFile, bufferToFlush.join(''), 'utf-8');
+      }
+    } catch (error) {
+      // Silently ignore write errors to avoid cascading failures
+    } finally {
+      this._isFlushing = false;
+    }
   }
 
   /** Rename current log to easyro-{date}.log and start fresh if > MAX_SIZE. */
@@ -69,16 +112,17 @@ class Logger {
     return line + '\n';
   }
 
-  /** Write a log entry to file (and console in dev mode). */
+  /** Write a log entry to buffer (async flush to file). */
   _write(level, category, message, data) {
     this._init();
     const line = this._format(level, category, message, data);
 
-    // Always write to file
-    try {
-      fs.appendFileSync(this.logFile, line, 'utf-8');
-    } catch {
-      // Silently ignore write errors to avoid cascading failures
+    // Add to buffer for async write
+    this._buffer.push(line);
+
+    // Flush immediately if buffer is too large (> 100 lines)
+    if (this._buffer.length >= 100) {
+      this._flush();
     }
 
     // Console output in dev mode
@@ -107,6 +151,8 @@ class Logger {
   /** Log an error. */
   error(category, message, ...data) {
     this._write('ERROR', category, message, data);
+    // Flush immediately for errors
+    this._flush();
   }
 
   /** Return the path to the current log file. */
@@ -120,9 +166,20 @@ class Logger {
     this._init();
     return this.logDir;
   }
+
+  /** Flush all pending logs and cleanup. */
+  async shutdown() {
+    this._stopFlushTimer();
+    await this._flush();
+  }
 }
 
 // Singleton instance
 const logger = new Logger();
+
+// Flush logs on process exit
+process.on('exit', () => {
+  logger.shutdown();
+});
 
 module.exports = logger;
