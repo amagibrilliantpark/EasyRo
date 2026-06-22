@@ -4,11 +4,25 @@ async function loadSessions() {
     const response = await window.electronAPI.session.list();
     const allSessions = response.value || response || [];
     window.App.sessions = allSessions;
+    window.App.sessionsCacheTime = Date.now();
     renderSessionList();
   } catch (error) {
     if(window.App.debug)console.error('Failed to load sessions:', error);
     window.electronAPI.log('error', 'RENDERER', 'Failed to load sessions: ' + error.message);
   }
+}
+
+/** Get sessions from cache if recent, otherwise fetch from backend. */
+async function getSessions(useCache = true) {
+  const CACHE_TTL = 5000; // 5 seconds
+  
+  if (useCache && window.App.sessionsCacheTime && 
+      (Date.now() - window.App.sessionsCacheTime) < CACHE_TTL) {
+    return window.App.sessions || [];
+  }
+  
+  await loadSessions();
+  return window.App.sessions || [];
 }
 
 /** Split sessions into attached/normal groups and render both lists. */
@@ -319,4 +333,4 @@ async function ensureSession() {
   }
 }
 
-window.Sessions = { loadSessions, selectSession, deleteSession, renameSession, searchSessions, renderSessionList, ensureSession };
+window.Sessions = { loadSessions, selectSession, deleteSession, renameSession, searchSessions, renderSessionList, ensureSession, getAllSessions: () => window.App.sessions || [], getSessions };

@@ -1,122 +1,7 @@
-const { spawn, execSync } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 const log = require('./logger');
-
-/** HTTP client for the OpenCode serve API. */
-class OpenCodeClient {
-  constructor(baseUrl) {
-    this.baseUrl = baseUrl;
-  }
-
-  /** Make an HTTP request to the OpenCode API with timeout and error handling. */
-  async request(method, endpoint, body = null) {
-    const url = `${this.baseUrl}${endpoint}`;
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30000);
-
-    try {
-      const options = {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal
-      };
-      if (body) options.body = JSON.stringify(body);
-
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        const text = await response.text();
-        let errorMessage = `HTTP ${response.status}`;
-        try {
-          const errorJson = JSON.parse(text);
-          errorMessage = errorJson.message || errorJson.error || text;
-        } catch {
-          errorMessage = text || errorMessage;
-        }
-        if (response.status === 429) {
-          throw new Error(`Rate limit exceeded: ${errorMessage}`);
-        } else if (response.status === 402 || response.status === 403) {
-          throw new Error(`Usage/quota exceeded: ${errorMessage}`);
-        }
-        throw new Error(errorMessage);
-      }
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-      return await response.text();
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new Error(`Request timeout: ${method} ${endpoint}`);
-      }
-      throw err;
-    } finally {
-      clearTimeout(timeout);
-    }
-  }
-
-  health() { return this.request('GET', '/global/health'); }
-  listSessions() { return this.request('GET', '/session'); }
-  createSession(title) { return this.request('POST', '/session', title ? { title } : {}); }
-  getSession(id) { return this.request('GET', `/session/${id}`); }
-  deleteSession(id) { return this.request('DELETE', `/session/${id}`); }
-  updateSession(id, data) { return this.request('PATCH', `/session/${id}`, data); }
-  getSessionTodo(id) { return this.request('GET', `/session/${id}/todo`); }
-  forkSession(id, messageId) {
-    return this.request('POST', `/session/${id}/fork`, { messageID: messageId });
-  }
-  abortSession(id) { return this.request('POST', `/session/${id}/abort`); }
-  revertSession(id) { return this.request('POST', `/session/${id}/revert`); }
-  unrevertSession(id) { return this.request('POST', `/session/${id}/unrevert`); }
-  getSessionMessages(id) { return this.request('GET', `/session/${id}/message`); }
-
-  sendMessage(sessionId, text, model) {
-    const body = {
-      parts: [{ type: 'text', text }],
-      ...(model && { model: { providerID: model.provider, modelID: model.model } })
-    };
-    return this.request('POST', `/session/${sessionId}/message`, body);
-  }
-
-  sendMessageAsync(sessionId, text, model, agent) {
-    const body = {
-      parts: [{ type: 'text', text }],
-      ...(model && { model: { providerID: model.provider, modelID: model.model, ...(model.variant && { variant: model.variant }) } }),
-      ...(agent && { agent })
-    };
-    return this.request('POST', `/session/${sessionId}/prompt_async`, body);
-  }
-
-  respondPermission(sessionId, permissionId, response, remember) {
-    return this.request('POST', `/session/${sessionId}/permissions/${permissionId}`, {
-      response,
-      remember
-    });
-  }
-
-  respondQuestion(requestID, answers) {
-    return this.request('POST', `/question/${requestID}/reply`, {
-      answers: Array.isArray(answers) ? answers : [answers]
-    });
-  }
-
-  rejectQuestion(requestID) {
-    return this.request('POST', `/question/${requestID}/reject`);
-  }
-
-  listPendingQuestions() {
-    return this.request('GET', '/question');
-  }
-
-  getConfig() { return this.request('GET', '/config'); }
-  patchConfig(patch) { return this.request('PATCH', '/config', patch); }
-  listProviders() { return this.request('GET', '/provider'); }
-  listAgents() { return this.request('GET', '/agent'); }
-  listTools() { return this.request('GET', '/experimental/tool/ids'); }
-  readFile(filePath) { return this.request('GET', `/file/content?path=${encodeURIComponent(filePath)}`); }
-  searchFiles(pattern) { return this.request('GET', `/find?pattern=${encodeURIComponent(pattern)}`); }
-  findFiles(query) { return this.request('GET', `/find/file?query=${encodeURIComponent(query)}`); }
-}
+const { OpenCodeClient } = require('./opencode-client');
+const { startRojo, startOpencode, findRojoExecutable, killProcessesOnPorts, sleep } = require('./process-manager');
 
 /** Manages Rojo and OpenCode child processes per project. */
 class InstanceManager {
@@ -163,12 +48,16 @@ class InstanceManager {
   /** Internal: kill existing instance, spawn Rojo + OpenCode, wait for health. */
   async _doStartInstance(project, ports) {
     const { id: projectId, path: projectPath } = project;
+    log.info('INSTANCE', 'Starting instance for project:', projectId);
 
     if (this.instances.has(projectId)) {
+      log.info('INSTANCE', 'Stopping existing instance for project:', projectId);
       await this.stopInstance(projectId);
     }
 
-    await this.killProcessesOnPorts(ports.rojo, ports.opencode);
+    log.info('INSTANCE', 'Killing processes on ports:', ports.rojo, 'and', ports.opencode);
+    await killProcessesOnPorts(ports.rojo, ports.opencode);
+    log.info('INSTANCE', 'Ports cleared');
 
     const instance = {
       project,
@@ -180,162 +69,34 @@ class InstanceManager {
     };
 
     this.instances.set(projectId, instance);
+    log.info('INSTANCE', 'Instance object created with status: starting');
 
     try {
-      await this.startRojo(instance);
-      await this.startOpencode(instance);
+      log.info('INSTANCE', 'Starting Rojo process...');
+      await startRojo(instance);
+      log.info('INSTANCE', 'Rojo started successfully');
+      
+      log.info('INSTANCE', 'Starting OpenCode process...');
+      await startOpencode(instance);
+      log.info('INSTANCE', 'OpenCode started successfully');
+      
+      log.info('INSTANCE', 'Creating OpenCode client...');
       this.createClient(instance);
+      log.info('INSTANCE', 'Client created');
+      
+      log.info('INSTANCE', 'Waiting for health check...');
       await this.waitForHealth(instance);
+      log.info('INSTANCE', 'Health check passed');
+      
       instance.status = 'running';
+      log.info('INSTANCE', 'Instance status set to: running');
     } catch (error) {
       instance.status = 'error';
       instance.error = error.message;
+      log.error('INSTANCE', 'Instance start failed:', error.message);
+      log.error('INSTANCE', 'Error stack:', error.stack);
       throw error;
     }
-  }
-
-  /** Spawn the Rojo process and resolve when it starts listening. */
-  async startRojo(instance) {
-    const { project, ports } = instance;
-    const rojoPath = this.findRojoExecutable(project.path);
-
-    return new Promise((resolve, reject) => {
-      const args = ['serve', '--port', ports.rojo.toString()];
-      const child = spawn(rojoPath, args, {
-        cwd: project.path,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        shell: false,
-        windowsHide: true
-      });
-
-      instance.rojoProcess = child;
-
-      let started = false;
-      let stdoutBuffer = '';
-      let stderrBuffer = '';
-      const timeout = setTimeout(() => {
-        if (!started) {
-          child.kill();
-          reject(new Error('Rojo start timeout'));
-        }
-      }, 30000);
-
-      child.stdout.on('data', (data) => {
-        stdoutBuffer += data.toString();
-        const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-        log.info('ROJO', 'stdout:', clean.trim());
-        if (clean.includes('listening') || clean.includes('server started')) {
-          if (!started) {
-            started = true;
-            clearTimeout(timeout);
-            resolve();
-          }
-        }
-      });
-
-      child.stderr.on('data', (data) => {
-        stderrBuffer += data.toString();
-        const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-        log.warn('ROJO', 'stderr:', clean.trim());
-        if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
-          if (!started) {
-            started = true;
-            clearTimeout(timeout);
-            reject(new Error(`Rojo error: ${stderrBuffer}`));
-          }
-        }
-      });
-
-      child.on('error', (error) => {
-        if (!started) {
-          started = true;
-          clearTimeout(timeout);
-          reject(error);
-        }
-      });
-
-      child.on('exit', (code) => {
-        log.info('ROJO', 'Exited with code', code);
-        if (!started) {
-          started = true;
-          clearTimeout(timeout);
-          reject(new Error(`Rojo exited with code ${code}`));
-        }
-      });
-    });
-  }
-
-  /** Spawn the OpenCode serve process and resolve when it's ready. */
-  async startOpencode(instance) {
-    const { project, ports } = instance;
-
-    return new Promise((resolve, reject) => {
-      const args = ['serve', '--port', ports.opencode.toString(), '--hostname', '127.0.0.1'];
-      const child = spawn('opencode', args, {
-        cwd: project.path,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        shell: process.platform === 'win32',
-        env: {
-          ...process.env,
-          OPENCODE_CONFIG: path.join(project.path, 'opencode.json')
-        }
-      });
-
-      instance.opencodeProcess = child;
-
-      let started = false;
-      let stdoutBuffer = '';
-      let stderrBuffer = '';
-      const timeout = setTimeout(() => {
-        if (!started) {
-          child.kill();
-          reject(new Error('OpenCode start timeout'));
-        }
-      }, 20000);
-
-      child.stdout.on('data', (data) => {
-        stdoutBuffer += data.toString();
-        const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-        log.info('OPENCODE', 'stdout:', clean.trim());
-        if (clean.includes('server listening') || clean.includes('ready') || clean.includes('listening')) {
-          if (!started) {
-            started = true;
-            clearTimeout(timeout);
-            resolve();
-          }
-        }
-      });
-
-      child.stderr.on('data', (data) => {
-        stderrBuffer += data.toString();
-        const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-        log.warn('OPENCODE', 'stderr:', clean.trim());
-        if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
-          if (!started) {
-            started = true;
-            clearTimeout(timeout);
-            reject(new Error(`OpenCode error: ${stderrBuffer}`));
-          }
-        }
-      });
-
-      child.on('error', (error) => {
-        if (!started) {
-          started = true;
-          clearTimeout(timeout);
-          reject(error);
-        }
-      });
-
-      child.on('exit', (code) => {
-        log.info('OPENCODE', 'Exited with code', code);
-        if (!started) {
-          started = true;
-          clearTimeout(timeout);
-          reject(new Error(`OpenCode exited with code ${code}`));
-        }
-      });
-    });
   }
 
   /** Create an OpenCodeClient pointed at the running instance. */
@@ -356,7 +117,7 @@ class InstanceManager {
       } catch {
         // not ready yet
       }
-      await this.sleep(500);
+      await sleep(500);
     }
     log.error('SYSTEM', 'Health check timeout after', maxRetries, 'attempts');
     throw new Error('Health check timeout');
@@ -385,7 +146,7 @@ class InstanceManager {
     if (exitPromises.length > 0) {
       await Promise.race([
         Promise.all(exitPromises),
-        this.sleep(5000)
+        sleep(5000)
       ]);
     }
 
@@ -414,61 +175,6 @@ class InstanceManager {
       error: instance.error
     };
   }
-
-  /** Find rojo.exe in the project dir, packaged resources, parent dir, or fall back to PATH. */
-  findRojoExecutable(projectPath) {
-    // 1) Bundled alongside the project (dev or user-data copy)
-    const localRojo = path.join(projectPath, 'rojo.exe');
-    if (fs.existsSync(localRojo)) return localRojo;
-
-    // 2) Packaged as an extraResource (NSIS / portable → resources/rojo.exe)
-    if (process.resourcesPath) {
-      const resourcesRojo = path.join(process.resourcesPath, 'rojo.exe');
-      if (fs.existsSync(resourcesRojo)) return resourcesRojo;
-    }
-
-    // 3) Parent directory (portable exe sitting next to the project folder)
-    const parentRojo = path.join(path.dirname(projectPath), 'rojo.exe');
-    if (fs.existsSync(parentRojo)) return parentRojo;
-
-    // 4) System PATH
-    return 'rojo';
-  }
-
-  /** Kill any process already listening on the given ports. */
-  async killProcessesOnPorts(rojoPort, opencodePort) {
-    for (const port of [rojoPort, opencodePort]) {
-      try {
-        if (process.platform === 'win32') {
-          // Use regex to match exact port (not :30000 when looking for :3000)
-          const result = execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`, { encoding: 'utf-8', timeout: 5000 }).trim();
-          if (result) {
-            const pids = result.split(/\s+/).filter(p => p.trim());
-            for (const pid of pids) {
-              const pidNum = parseInt(pid);
-              if (pidNum && pidNum > 0 && pidNum !== 0) {
-                try { execSync(`taskkill /PID ${pidNum} /F`, { timeout: 3000 }); } catch {}
-              }
-            }
-          }
-        } else {
-          const result = execSync(`lsof -ti :${port}`, { encoding: 'utf-8', timeout: 5000 }).trim();
-          if (result) {
-            const pids = result.split('\n').filter(p => p.trim());
-            for (const pid of pids) {
-              try { execSync(`kill -9 ${pid.trim()}`, { timeout: 3000 }); } catch {}
-            }
-          }
-        }
-      } catch {}
-    }
-    await this.sleep(500);
-  }
-
-  /** Promise-based sleep. */
-  sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 }
 
-module.exports = { InstanceManager, OpenCodeClient };
+module.exports = { InstanceManager };

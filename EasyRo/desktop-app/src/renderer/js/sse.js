@@ -2,6 +2,10 @@
 let activeTextPartID = null;
 let isCompacting = false;
 
+// Throttle cache for session stats refresh
+let statsRefreshThrottle = null;
+const STATS_REFRESH_DELAY = 2000; // 2 seconds
+
 /** Subscribe to SSE events from the main process and route them to handlers. */
 function initSSE() {
   window.electronAPI.onEvent((data) => {
@@ -219,27 +223,36 @@ function handlePermissionAsked(properties) {
 async function refreshSessionStats() {
   const sessionToRefresh = window.App.currentSession;
   if (!sessionToRefresh) return;
-  try {
-    const response = await window.electronAPI.session.list();
-    if (window.App.currentSession !== sessionToRefresh) return;
-    const allSessions = response.value || response || [];
-    const session = allSessions.find(s => s.id === sessionToRefresh);
-    if (session) {
-      window.RightPanel.updateContextStats({
-        input: session.tokens ? session.tokens.input : 0,
-        output: session.tokens ? session.tokens.output : 0,
-        reasoning: session.tokens ? session.tokens.reasoning : 0,
-        cost: session.cost || 0
-      });
-      const localSession = window.App.sessions.find(s => s.id === session.id);
-      if (localSession) {
-        localSession.tokens = session.tokens;
-        localSession.cost = session.cost;
-      }
-    }
-  } catch (error) {
-    window.electronAPI.log('error', 'RENDERER', 'Session stats refresh error: ' + error.message);
+
+  // Throttle refresh to avoid excessive API calls
+  if (statsRefreshThrottle) {
+    clearTimeout(statsRefreshThrottle);
   }
+  
+  statsRefreshThrottle = setTimeout(async () => {
+    statsRefreshThrottle = null;
+    try {
+      const response = await window.electronAPI.session.list();
+      if (window.App.currentSession !== sessionToRefresh) return;
+      const allSessions = response.value || response || [];
+      const session = allSessions.find(s => s.id === sessionToRefresh);
+      if (session) {
+        window.RightPanel.updateContextStats({
+          input: session.tokens ? session.tokens.input : 0,
+          output: session.tokens ? session.tokens.output : 0,
+          reasoning: session.tokens ? session.tokens.reasoning : 0,
+          cost: session.cost || 0
+        });
+        const localSession = window.App.sessions.find(s => s.id === session.id);
+        if (localSession) {
+          localSession.tokens = session.tokens;
+          localSession.cost = session.cost;
+        }
+      }
+    } catch (error) {
+      window.electronAPI.log('error', 'RENDERER', 'Session stats refresh error: ' + error.message);
+    }
+  }, STATS_REFRESH_DELAY);
 }
 
 /** Update the todo list in the right panel when the backend pushes changes. */
