@@ -36,6 +36,10 @@ function setupSSEBridge(projectId, port) {
           } else if (line.trim() === '' && dataBuffer) {
             try {
               const data = JSON.parse(dataBuffer);
+              const eventType = data.type || 'unknown';
+              if (eventType.includes('session.status') || eventType.includes('message.part.updated') || eventType.includes('session.idle') || eventType.includes('message.updated')) {
+                log.info('SSE', `[Perf] event: ${eventType}`);
+              }
               const mainWindow = getMainWindow();
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('sse:event', {

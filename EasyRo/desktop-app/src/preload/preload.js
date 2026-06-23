@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     todo: (sessionId) => ipcRenderer.invoke('session:todo', sessionId),
     fork: (sessionId, messageId) => ipcRenderer.invoke('session:fork', sessionId, messageId),
     abort: (sessionId) => ipcRenderer.invoke('session:abort', sessionId),
-    revert: (sessionId) => ipcRenderer.invoke('session:revert', sessionId),
+    revert: (sessionId, messageId) => ipcRenderer.invoke('session:revert', sessionId, messageId),
     unrevert: (sessionId) => ipcRenderer.invoke('session:unrevert', sessionId),
     messages: (sessionId) => ipcRenderer.invoke('session:messages', sessionId),
     saveCurrent: () => ipcRenderer.invoke('session:save-current'),

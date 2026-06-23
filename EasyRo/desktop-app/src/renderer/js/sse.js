@@ -12,6 +12,11 @@ function initSSE() {
     const props = data.properties || {};
     const sid = props.sessionID || props.id || '';
     const isCurrent = sid === window.App.currentSession;
+    const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+
+    if (isCurrent || data.type === 'session.status' || data.type === 'session.idle' || data.type === 'session.error') {
+      console.log(`[Perf] 📨 SSE event: ${data.type} | session: ${sid} | elapsed: ${elapsed}ms`);
+    }
 
     switch (data.type) {
       case 'message.part.updated':
@@ -53,6 +58,9 @@ function handlePartUpdate(properties) {
   if (!properties || isCompacting) return;
   const { part, sessionID } = properties;
   if (!part || sessionID !== window.App.currentSession) return;
+
+  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  console.log(`[Perf] 🔧 PartUpdate: type=${part.type}, id=${part.id}, elapsed=${elapsed}ms`);
 
   if ((part.type === 'reasoning' || part.type === 'step-start' || part.type === 'text') && !window.App.isProcessing) {
     window.Chat.setStopMode(true);
@@ -100,7 +108,8 @@ function handlePartDelta(properties) {
 function handleMessageUpdated(properties) {
   if (!properties) return;
   const info = properties.info || properties;
-  // Only reset streaming for completed messages, not partial updates during streaming
+  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  console.log(`[Perf] ✅ MessageUpdated: completed=${!!(info.time && info.time.completed)}, elapsed=${elapsed}ms`);
   if (info.time && info.time.completed) {
     window.Chat.finalizeStreaming();
   }
@@ -115,6 +124,9 @@ function handleSessionStatus(properties) {
 
   const statusObj = properties.status;
   const status = typeof statusObj === 'string' ? statusObj : (statusObj && statusObj.type) || '';
+  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  console.log(`[Perf] 🔄 SessionStatus: ${status}, elapsed=${elapsed}ms`);
+
   const statusEl = document.getElementById('sidebarStatus');
   if (!statusEl) return;
 
@@ -163,15 +175,15 @@ function handleSessionStatus(properties) {
         }, 100);
       }
     }
-    if (window.App.isProcessing) {
-      handleSessionIdle(properties);
-    }
   }
 }
 
 /** Finalize streaming and reset UI when the session becomes idle. */
 function handleSessionIdle(properties) {
   if (isCompacting) return;
+
+  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  console.log(`[Perf] 💤 SessionIdle: elapsed=${elapsed}ms`);
 
   if (properties && window.App.currentSession) {
     const eventSession = properties.sessionID || properties.id;
@@ -192,12 +204,78 @@ function handleSessionIdle(properties) {
   window.Chat.hideAllStatusIndicators();
   activeTextPartID = null;
 
+  const sessionToRefresh = window.App.currentSession;
+  console.log('[RevertDebug] handleSessionIdle called, sessionToRefresh:', sessionToRefresh);
+  if (sessionToRefresh) {
+    window.electronAPI.session.messages(sessionToRefresh).then(messages => {
+      console.log('[RevertDebug] session.messages response received, currentSession:', window.App.currentSession);
+      if (window.App.currentSession !== sessionToRefresh) {
+        console.log('[RevertDebug] Session changed during fetch, skipping render');
+        return;
+      }
+      const msgList = messages.value || messages;
+      const existingMsgs = document.querySelectorAll('#chatArea .message');
+      console.log('[RevertDebug] API returned', msgList.length, 'messages, UI has', existingMsgs.length, 'messages');
+
+      // Update existing user messages with their IDs (they were sent without IDs)
+      let updatedCount = 0;
+      const uiUserMsgs = Array.from(existingMsgs).filter(m => m.classList.contains('user-message'));
+      const apiUserMsgs = msgList.filter(m => m.info && m.info.role === 'user');
+      
+      for (let i = 0; i < Math.min(uiUserMsgs.length, apiUserMsgs.length); i++) {
+        const uiMsg = uiUserMsgs[i];
+        const apiMsg = apiUserMsgs[i];
+        if (!uiMsg.dataset.messageId && apiMsg.info && apiMsg.info.id) {
+          uiMsg.dataset.messageId = apiMsg.info.id;
+          // Add revert button if not already present
+          if (!uiMsg.querySelector('.msg-revert-btn')) {
+            const revertBtn = document.createElement('button');
+            revertBtn.className = 'msg-revert-btn';
+            revertBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h10a5 5 0 0 1 0 10H9"/><polyline points="7 14 3 10 7 6"/></svg>';
+            revertBtn.title = 'Revert to this point';
+            const cardText = uiMsg.querySelector('.msg-card')?.textContent || '';
+            revertBtn.addEventListener('click', () => window.Modals.showRevertModal(apiMsg.info.id, cardText));
+            uiMsg.appendChild(revertBtn);
+          }
+          updatedCount++;
+          console.log('[RevertDebug] Updated user message ID:', apiMsg.info.id);
+        }
+      }
+      if (updatedCount > 0) {
+        console.log('[RevertDebug] Updated', updatedCount, 'user message IDs');
+      }
+
+      if (msgList.length > existingMsgs.length) {
+        const newCount = msgList.length - existingMsgs.length;
+        const newMsgs = msgList.slice(existingMsgs.length);
+        console.log('[RevertDebug] Appending', newCount, 'new messages');
+        for (const msg of newMsgs) {
+          const role = msg.info ? msg.info.role : 'assistant';
+          const id = msg.info ? msg.info.id : null;
+          if (msg.parts) {
+            for (const part of msg.parts) {
+              if (part.type === 'text' && part.text) {
+                window.Chat.appendMessage(role, part.text, id);
+              }
+            }
+          }
+        }
+      } else {
+        console.log('[RevertDebug] No new messages to append, skipping');
+      }
+    }).catch(err => {
+      console.error('[RevertDebug] Failed to re-fetch messages after idle:', err);
+    });
+  }
+
   refreshSessionStats();
 }
 
 /** Handle dedicated session.error events from the backend. */
 function handleSessionError(properties) {
   if (!properties) return;
+  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  console.log(`[Perf] ❌ SessionError: elapsed=${elapsed}ms`, properties);
   const eventSession = properties.sessionID || properties.id;
   if (eventSession && eventSession !== window.App.currentSession) return;
 
@@ -250,7 +328,7 @@ async function refreshSessionStats() {
         }
       }
     } catch (error) {
-      window.electronAPI.log('error', 'RENDERER', 'Session stats refresh error: ' + error.message);
+      console.error('[RENDERER] Session stats refresh error: ' + error.message);
     }
   }, STATS_REFRESH_DELAY);
 }
@@ -263,6 +341,15 @@ function handleTodoUpdated(properties) {
   const todos = properties.todos || properties.items || properties;
   if (Array.isArray(todos)) {
     window.RightPanel.updateTodoList(todos);
+    // Auto-open todo list when AI creates/updates todos
+    const todoList = document.getElementById('todoList');
+    const todoHeader = document.getElementById('todoHeader');
+    if (todoList && !todoList.classList.contains('active') && todos.length > 0) {
+      todoList.classList.add('active');
+      const arrow = todoHeader?.querySelector('.todo-arrow');
+      if (arrow) arrow.textContent = '\u25BC';
+      console.log(`[UI] Todo list auto-opened, ${todos.length} items`);
+    }
   }
 }
 

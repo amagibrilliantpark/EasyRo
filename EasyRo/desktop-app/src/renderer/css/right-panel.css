@@ -88,6 +88,11 @@
 }
 .rp-todo-item-active {
   color: #4e87bb;
+  font-weight: 600;
+  background: rgba(78,135,187,0.12);
+  border-left: 3px solid #4e87bb;
+  padding-left: 9px;
+  border-radius: 4px;
 }
 .rp-todo-item-active .todo-check {
   color: #4e87bb;

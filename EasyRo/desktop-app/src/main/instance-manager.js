@@ -48,16 +48,20 @@ class InstanceManager {
   /** Internal: kill existing instance, spawn Rojo + OpenCode, wait for health. */
   async _doStartInstance(project, ports) {
     const { id: projectId, path: projectPath } = project;
-    log.info('INSTANCE', 'Starting instance for project:', projectId);
+    const instanceStart = Date.now();
+    log.info('INSTANCE', `Starting instance for project: ${projectId}`);
 
     if (this.instances.has(projectId)) {
-      log.info('INSTANCE', 'Stopping existing instance for project:', projectId);
+      log.info('INSTANCE', `Stopping existing instance for project: ${projectId}`);
+      const stopStart = Date.now();
       await this.stopInstance(projectId);
+      log.info('INSTANCE', `Existing instance stopped in ${Date.now() - stopStart}ms`);
     }
 
-    log.info('INSTANCE', 'Killing processes on ports:', ports.rojo, 'and', ports.opencode);
+    log.info('INSTANCE', `Killing processes on ports: ${ports.rojo} and ${ports.opencode}`);
+    const killStart = Date.now();
     await killProcessesOnPorts(ports.rojo, ports.opencode);
-    log.info('INSTANCE', 'Ports cleared');
+    log.info('INSTANCE', `Ports cleared in ${Date.now() - killStart}ms`);
 
     const instance = {
       project,
@@ -73,27 +77,30 @@ class InstanceManager {
 
     try {
       log.info('INSTANCE', 'Starting Rojo process...');
+      const rojoStart = Date.now();
       await startRojo(instance);
-      log.info('INSTANCE', 'Rojo started successfully');
-      
+      log.info('INSTANCE', `Rojo started in ${Date.now() - rojoStart}ms`);
+
       log.info('INSTANCE', 'Starting OpenCode process...');
+      const ocStart = Date.now();
       await startOpencode(instance);
-      log.info('INSTANCE', 'OpenCode started successfully');
-      
+      log.info('INSTANCE', `OpenCode started in ${Date.now() - ocStart}ms`);
+
       log.info('INSTANCE', 'Creating OpenCode client...');
       this.createClient(instance);
       log.info('INSTANCE', 'Client created');
-      
+
       log.info('INSTANCE', 'Waiting for health check...');
+      const healthStart = Date.now();
       await this.waitForHealth(instance);
-      log.info('INSTANCE', 'Health check passed');
-      
+      log.info('INSTANCE', `Health check passed in ${Date.now() - healthStart}ms`);
+
       instance.status = 'running';
-      log.info('INSTANCE', 'Instance status set to: running');
+      log.info('INSTANCE', `Instance status set to: running (total: ${Date.now() - instanceStart}ms)`);
     } catch (error) {
       instance.status = 'error';
       instance.error = error.message;
-      log.error('INSTANCE', 'Instance start failed:', error.message);
+      log.error('INSTANCE', `Instance start FAILED after ${Date.now() - instanceStart}ms:`, error.message);
       log.error('INSTANCE', 'Error stack:', error.stack);
       throw error;
     }
@@ -107,19 +114,23 @@ class InstanceManager {
 
   /** Poll the health endpoint until the instance reports healthy. */
   async waitForHealth(instance, maxRetries = 30) {
+    log.info('SYSTEM', `Health check starting (max ${maxRetries} attempts)`);
     for (let i = 0; i < maxRetries; i++) {
       try {
         const data = await instance.client.health();
         if (data && data.healthy) {
-          log.info('SYSTEM', 'Health check passed on attempt', i + 1);
+          log.info('SYSTEM', `Health check passed on attempt ${i + 1}`);
           return true;
         }
-      } catch {
-        // not ready yet
+        log.info('SYSTEM', `Health check attempt ${i + 1}: not healthy yet`);
+      } catch (err) {
+        if (i % 5 === 0) {
+          log.info('SYSTEM', `Health check attempt ${i + 1}: connection failed (${err.message})`);
+        }
       }
       await sleep(500);
     }
-    log.error('SYSTEM', 'Health check timeout after', maxRetries, 'attempts');
+    log.error('SYSTEM', `Health check timeout after ${maxRetries} attempts`);
     throw new Error('Health check timeout');
   }
 

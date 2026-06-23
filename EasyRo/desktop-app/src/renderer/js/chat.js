@@ -4,10 +4,15 @@ async function sendMessage() {
   const text = input.value.trim();
   if (!text) return;
 
+  const sendStartTime = performance.now();
+  console.log(`[Perf] ⏱ sendMessage START at ${sendStartTime.toFixed(0)}ms`);
+
   if (window.App.isProcessing && window.App.currentSession) {
     try {
+      console.log(`[Perf] ⏱ Aborting previous session...`);
       await window.electronAPI.session.abort(window.App.currentSession);
       await new Promise(r => setTimeout(r, 300));
+      console.log(`[Perf] ⏱ Abort done in ${(performance.now() - sendStartTime).toFixed(0)}ms`);
     } catch (e) {
       // already idle
     }
@@ -22,23 +27,31 @@ async function sendMessage() {
   setStopMode(true);
 
   try {
+    const sessionStart = performance.now();
     const sessionId = await window.Sessions.ensureSession();
+    console.log(`[Perf] ⏱ ensureSession done in ${(performance.now() - sessionStart).toFixed(0)}ms, session: ${sessionId}`);
+
     const model = window.App.currentModel;
     const agent = window.App.currentAgent;
     const variant = window.App.currentVariant;
     const modelWithVariant = model ? { ...model, variant } : null;
+
+    const sendAsyncStart = performance.now();
+    console.log(`[Perf] ⏱ sendAsync START, model: ${model?.id || 'none'}, agent: ${agent || 'build'}`);
     await window.electronAPI.message.sendAsync(
       sessionId,
       text,
       modelWithVariant,
       agent || 'build'
     );
+    console.log(`[Perf] ⏱ sendAsync DONE in ${(performance.now() - sendAsyncStart).toFixed(0)}ms`);
+    console.log(`[Perf] ⏱ Total sendMessage ${(performance.now() - sendStartTime).toFixed(0)}ms`);
+
     if (typeof window.SSE !== 'undefined') window.SSE.lastSendMessageTime = Date.now();
-    window.electronAPI.log('info', 'RENDERER', 'Message sent to session: ' + sessionId);
   } catch (error) {
     Chat.Indicators.hideAllStatusIndicators();
     Chat.Messages.appendMessage('assistant', 'Error: ' + error.message);
-    window.electronAPI.log('error', 'RENDERER', 'Send message error: ' + error.message);
+    console.error(`[Perf] ❌ sendMessage FAILED after ${(performance.now() - sendStartTime).toFixed(0)}ms:`, error.message);
     setStopMode(false);
   }
 }
