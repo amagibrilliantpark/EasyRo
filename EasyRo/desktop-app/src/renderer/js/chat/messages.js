@@ -14,12 +14,16 @@ function renderMessages(messages) {
   emptyState.classList.remove('active');
 
   const msgList = messages.value || messages;
+  console.log('[RevertDebug] renderMessages called, msgList.length:', msgList.length);
 
   for (const msg of msgList) {
+    const role = msg.info ? msg.info.role : 'assistant';
+    const id = msg.info ? msg.info.id : null;
+    console.log('[RevertDebug] renderMessages msg:', { role, id, hasParts: !!msg.parts });
     if (msg.parts) {
       for (const part of msg.parts) {
         if (part.type === 'text' && part.text) {
-          appendMessage(msg.info ? msg.info.role : 'assistant', part.text);
+          appendMessage(role, part.text, id);
         }
       }
     }
@@ -29,16 +33,29 @@ function renderMessages(messages) {
 }
 
 /** Append a single message bubble to the chat area. */
-function appendMessage(role, text) {
+function appendMessage(role, text, messageId = null) {
+  console.log('[RevertDebug] appendMessage called:', { role, messageId, textLen: text?.length });
   const container = document.getElementById('chatArea');
   const emptyState = document.getElementById('emptyState');
   emptyState.classList.remove('active');
 
   const msg = document.createElement('div');
   msg.className = 'message ' + (role === 'user' ? 'user-message' : 'ai-message');
+  if (messageId) msg.dataset.messageId = messageId;
 
   if (role === 'user') {
     msg.innerHTML = '<div class="msg-card">' + escapeHtml(text) + '</div>';
+    if (messageId) {
+      const revertBtn = document.createElement('button');
+      revertBtn.className = 'msg-revert-btn';
+      revertBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h10a5 5 0 0 1 0 10H9"/><polyline points="7 14 3 10 7 6"/></svg>';
+      revertBtn.title = 'Revert to this point';
+      revertBtn.addEventListener('click', () => window.Modals.showRevertModal(messageId, text));
+      msg.appendChild(revertBtn);
+      console.log('[RevertDebug] Revert button ADDED for messageId:', messageId);
+    } else {
+      console.log('[RevertDebug] NO revert button - messageId is null/empty');
+    }
   } else {
     renderTextContent(msg, text);
   }

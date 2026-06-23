@@ -1,26 +1,35 @@
 /** Fetch available AI providers and populate the model selector. */
 async function loadProviders() {
+  const t0 = performance.now();
+  console.log(`[Init] loadProviders START`);
   try {
     const providers = await window.electronAPI.provider.list();
     window.App.providers = providers || [];
     populateModelSelector(providers);
+    console.log(`[Init] loadProviders DONE in ${(performance.now() - t0).toFixed(0)}ms`);
   } catch (error) {
+    console.error(`[Init] loadProviders FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error.message);
     if(window.App.debug)console.error('Failed to load providers:', error);
   }
 }
 
 /** Fetch available agent modes (build, plan, etc). */
 async function loadAgents() {
+  const t0 = performance.now();
+  console.log(`[Init] loadAgents START`);
   try {
     const agents = await window.electronAPI.agent.list();
     window.App.agents = agents || [];
+    console.log(`[Init] loadAgents DONE in ${(performance.now() - t0).toFixed(0)}ms, count: ${agents?.length || 0}`);
   } catch (error) {
+    console.error(`[Init] loadAgents FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error.message);
     if(window.App.debug)console.error('Failed to load agents:', error);
   }
 }
 
 /** Build the model selector dropdown from provider data, restoring saved selection. */
 function populateModelSelector(providers) {
+  console.log(`[Init] populateModelSelector called`);
   const modelPopup = document.getElementById('modelPopup');
   const modelSelector = document.getElementById('modelSelector');
   modelPopup.innerHTML = '';

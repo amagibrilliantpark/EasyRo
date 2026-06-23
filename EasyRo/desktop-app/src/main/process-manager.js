@@ -1,12 +1,27 @@
-const { spawn, execSync } = require('child_process');
+const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const log = require('./logger');
+
+/** Execute a shell command asynchronously with timeout. */
+function execAsync(command, timeout = 5000) {
+  return new Promise((resolve) => {
+    exec(command, { encoding: 'utf-8', timeout }, (error, stdout) => {
+      if (error) {
+        resolve('');
+      } else {
+        resolve((stdout || '').trim());
+      }
+    });
+  });
+}
 
 /** Spawn the Rojo process and resolve when it starts listening. */
 async function startRojo(instance) {
   const { project, ports } = instance;
   const rojoPath = findRojoExecutable(project.path);
+  const spawnStart = Date.now();
+  log.info('ROJO', `Spawning Rojo: ${rojoPath} serve --port ${ports.rojo} (cwd: ${project.path})`);
 
   return new Promise((resolve, reject) => {
     const args = ['serve', '--port', ports.rojo.toString()];
@@ -25,9 +40,16 @@ async function startRojo(instance) {
     const timeout = setTimeout(() => {
       if (!started) {
         child.kill();
+        log.error('ROJO', `Rojo start TIMEOUT after 30s, killing process`);
         reject(new Error('Rojo start timeout'));
       }
     }, 30000);
+
+    // Progress log every 5s if Rojo hasn't started
+    const progressLog = setInterval(() => {
+      if (started) { clearInterval(progressLog); return; }
+      log.info('ROJO', `Still waiting for Rojo... (${((Date.now() - spawnStart) / 1000).toFixed(0)}s)`);
+    }, 5000);
 
     child.stdout.on('data', (data) => {
       stdoutBuffer += data.toString();
@@ -36,7 +58,9 @@ async function startRojo(instance) {
       if (clean.includes('listening') || clean.includes('server started')) {
         if (!started) {
           started = true;
+          clearInterval(progressLog);
           clearTimeout(timeout);
+          log.info('ROJO', `Rojo ready in ${Date.now() - spawnStart}ms`);
           resolve();
         }
       }
@@ -49,6 +73,7 @@ async function startRojo(instance) {
       if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
         if (!started) {
           started = true;
+          clearInterval(progressLog);
           clearTimeout(timeout);
           reject(new Error(`Rojo error: ${stderrBuffer}`));
         }
@@ -58,6 +83,7 @@ async function startRojo(instance) {
     child.on('error', (error) => {
       if (!started) {
         started = true;
+        clearInterval(progressLog);
         clearTimeout(timeout);
         reject(error);
       }
@@ -67,6 +93,7 @@ async function startRojo(instance) {
       log.info('ROJO', 'Exited with code', code);
       if (!started) {
         started = true;
+        clearInterval(progressLog);
         clearTimeout(timeout);
         reject(new Error(`Rojo exited with code ${code}`));
       }
@@ -77,6 +104,8 @@ async function startRojo(instance) {
 /** Spawn the OpenCode serve process and resolve when it's ready. */
 async function startOpencode(instance) {
   const { project, ports } = instance;
+  const spawnStart = Date.now();
+  log.info('OPENCODE', `Spawning OpenCode: serve --port ${ports.opencode} (cwd: ${project.path})`);
 
   return new Promise((resolve, reject) => {
     const args = ['serve', '--port', ports.opencode.toString(), '--hostname', '127.0.0.1'];
@@ -98,9 +127,16 @@ async function startOpencode(instance) {
     const timeout = setTimeout(() => {
       if (!started) {
         child.kill();
+        log.error('OPENCODE', `OpenCode start TIMEOUT after 20s, killing process`);
         reject(new Error('OpenCode start timeout'));
       }
     }, 20000);
+
+    // Progress log every 5s if OpenCode hasn't started
+    const progressLog = setInterval(() => {
+      if (started) { clearInterval(progressLog); return; }
+      log.info('OPENCODE', `Still waiting for OpenCode... (${((Date.now() - spawnStart) / 1000).toFixed(0)}s)`);
+    }, 5000);
 
     child.stdout.on('data', (data) => {
       stdoutBuffer += data.toString();
@@ -109,7 +145,9 @@ async function startOpencode(instance) {
       if (clean.includes('server listening') || clean.includes('ready') || clean.includes('listening')) {
         if (!started) {
           started = true;
+          clearInterval(progressLog);
           clearTimeout(timeout);
+          log.info('OPENCODE', `OpenCode ready in ${Date.now() - spawnStart}ms`);
           resolve();
         }
       }
@@ -122,6 +160,7 @@ async function startOpencode(instance) {
       if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
         if (!started) {
           started = true;
+          clearInterval(progressLog);
           clearTimeout(timeout);
           reject(new Error(`OpenCode error: ${stderrBuffer}`));
         }
@@ -131,6 +170,7 @@ async function startOpencode(instance) {
     child.on('error', (error) => {
       if (!started) {
         started = true;
+        clearInterval(progressLog);
         clearTimeout(timeout);
         reject(error);
       }
@@ -140,6 +180,7 @@ async function startOpencode(instance) {
       log.info('OPENCODE', 'Exited with code', code);
       if (!started) {
         started = true;
+        clearInterval(progressLog);
         clearTimeout(timeout);
         reject(new Error(`OpenCode exited with code ${code}`));
       }
@@ -172,23 +213,22 @@ async function killProcessesOnPorts(rojoPort, opencodePort) {
   for (const port of [rojoPort, opencodePort]) {
     try {
       if (process.platform === 'win32') {
-        // Use regex to match exact port (not :30000 when looking for :3000)
-        const result = execSync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`, { encoding: 'utf-8', timeout: 5000 }).trim();
+        const result = await execAsync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`, 5000);
         if (result) {
           const pids = result.split(/\s+/).filter(p => p.trim());
           for (const pid of pids) {
             const pidNum = parseInt(pid);
             if (pidNum && pidNum > 0 && pidNum !== 0) {
-              try { execSync(`taskkill /PID ${pidNum} /F`, { timeout: 3000 }); } catch {}
+              try { await execAsync(`taskkill /PID ${pidNum} /F`, 3000); } catch {}
             }
           }
         }
       } else {
-        const result = execSync(`lsof -ti :${port}`, { encoding: 'utf-8', timeout: 5000 }).trim();
+        const result = await execAsync(`lsof -ti :${port}`, 5000);
         if (result) {
           const pids = result.split('\n').filter(p => p.trim());
           for (const pid of pids) {
-            try { execSync(`kill -9 ${pid.trim()}`, { timeout: 3000 }); } catch {}
+            try { await execAsync(`kill -9 ${pid.trim()}`, 3000); } catch {}
           }
         }
       }

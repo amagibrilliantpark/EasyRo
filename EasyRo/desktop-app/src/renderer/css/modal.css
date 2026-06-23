@@ -123,3 +123,78 @@
   color: #2a3a4e; padding: 6px 0; line-height: 1.4; caret-color: #4e87bb;
 }
 .qm-text-input::placeholder { color: #9aafc4; font-weight: 500; }
+
+/* ── Revert Modal ── */
+.revert-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.revert-modal-overlay.hidden { display: none; }
+
+.revert-modal {
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(180,210,240,0.50);
+  border-radius: 14px;
+  box-shadow: 0 4px 24px rgba(140,185,230,0.15), 0 1px 4px rgba(140,185,230,0.10);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding: 20px;
+  position: relative;
+  min-width: 320px;
+  max-width: 90%;
+}
+
+.rm-header { padding: 0 0 12px 0; }
+.rm-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px; font-weight: 700; color: #1e2d3d;
+}
+
+.rm-body { padding: 0 0 16px 0; }
+
+.rm-message-preview {
+  background: rgba(220,235,250,0.45);
+  border: 1px solid rgba(180,210,240,0.40);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500;
+  color: #2a3a4e;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
+.rm-warning {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px; font-weight: 500;
+  color: #e67e22;
+  line-height: 1.4;
+}
+
+.rm-footer {
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+.rm-btn-cancel {
+  padding: 8px 16px; border-radius: 8px;
+  border: 1px solid rgba(180,210,240,0.45);
+  background: rgba(240,245,252,0.70);
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  color: #3a5a7a; cursor: pointer;
+}
+.rm-btn-cancel:hover { background: rgba(210,230,250,0.65); }
+
+.rm-btn-revert {
+  padding: 8px 16px; border-radius: 8px; border: none;
+  background: #4e87bb;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 600;
+  color: #fff; cursor: pointer;
+}
+.rm-btn-revert:hover { background: #3d73a5; }

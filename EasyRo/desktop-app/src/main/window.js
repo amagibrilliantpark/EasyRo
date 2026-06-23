@@ -6,6 +6,9 @@ let mainWindow;
 
 /** Create the main BrowserWindow with frameless title bar. */
 function createWindow() {
+  const windowStart = Date.now();
+  log.info('WINDOW', 'Creating main window...');
+
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -26,15 +29,27 @@ function createWindow() {
     show: false
   });
 
+  log.info('WINDOW', `BrowserWindow created in ${Date.now() - windowStart}ms`);
+
   mainWindow.maximize();
   mainWindow.show();
+  log.info('WINDOW', `Window maximized and shown in ${Date.now() - windowStart}ms`);
 
   mainWindow.on('unmaximize', () => {
     mainWindow.setSize(1000, 700);
     mainWindow.center();
   });
 
+  log.info('WINDOW', 'Loading index.html...');
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    log.info('WINDOW', `index.html loaded in ${Date.now() - windowStart}ms`);
+  });
+
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    log.error('WINDOW', `Failed to load index.html: ${errorCode} - ${errorDescription}`);
+  });
 
   // Forward renderer logs to main process logger (only in dev mode)
   if (process.argv.includes('--dev')) {
@@ -46,7 +61,10 @@ function createWindow() {
 
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
+    log.info('WINDOW', 'DevTools opened');
   }
+
+  log.info('WINDOW', `Window setup complete in ${Date.now() - windowStart}ms`);
 }
 
 function getMainWindow() {

@@ -201,7 +201,7 @@
       <div class="rp-todo-list" id="todoList"></div>
       <div class="rp-footer">
         <span class="rp-footer-logo">Easy<em>Ro</em></span>
-        <span class="rp-footer-ver">v0.0.3</span>
+        <span class="rp-footer-ver">v1.0.0</span>
       </div>
     </aside>
   </div>
@@ -218,5 +218,22 @@
   <script src="js/providers.js"></script>
   <script src="js/right-panel.js"></script>
   <script src="js/app.js"></script>
+
+  <!-- Revert Modal (hidden by default) -->
+  <div class="revert-modal-overlay hidden" id="revertModalOverlay">
+    <div class="revert-modal" id="revertModal">
+      <div class="rm-header">
+        <div class="rm-title">Revert to this point?</div>
+      </div>
+      <div class="rm-body">
+        <div class="rm-message-preview" id="rmMessagePreview"></div>
+        <div class="rm-warning">This will revert file changes</div>
+      </div>
+      <div class="rm-footer">
+        <button class="rm-btn-cancel" id="rmCancel">Cancel</button>
+        <button class="rm-btn-revert" id="rmRevert">Revert</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

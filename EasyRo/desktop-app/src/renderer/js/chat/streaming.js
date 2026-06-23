@@ -2,9 +2,18 @@
 let streamingTextAccum = '';
 let streamingRenderPending = false;
 let streamingTargetMsg = null;
+let streamingDeltaCount = 0;
+let lastStreamingChunk = '';
 
 /** Append a chunk of streamed text and schedule a render pass. */
 function appendStreamingText(text) {
+  // Guard against duplicate chunks
+  if (text === lastStreamingChunk && text.length > 10) {
+    console.warn(`[Perf] Streaming: duplicate chunk detected, skipping (${text.length} chars)`);
+    return;
+  }
+  lastStreamingChunk = text;
+
   const container = document.getElementById('chatArea');
   const emptyState = document.getElementById('emptyState');
   if (emptyState) emptyState.classList.remove('active');
@@ -13,12 +22,15 @@ function appendStreamingText(text) {
     streamingTargetMsg = document.createElement('div');
     streamingTargetMsg.className = 'message ai-message';
     container.appendChild(streamingTargetMsg);
+    streamingDeltaCount = 0;
+    console.log(`[Perf] Streaming: new message element created`);
   }
 
   Chat.Indicators.hideThinking();
   removeStreamingCursor();
 
   streamingTextAccum += text;
+  streamingDeltaCount++;
 
   if (!streamingRenderPending) {
     streamingRenderPending = true;
@@ -43,6 +55,7 @@ function finalizeStreaming() {
   if (!streamingTargetMsg || !streamingTargetMsg.parentNode) return;
   if (!streamingTextAccum) return;
 
+  console.log(`[Perf] Streaming finalized: ${streamingDeltaCount} deltas, ${streamingTextAccum.length} chars`);
   removeStreamingCursor();
   resetStreamingAccum();
 }
@@ -52,6 +65,7 @@ function resetStreamingAccum() {
   streamingTextAccum = '';
   streamingTargetMsg = null;
   streamingRenderPending = false;
+  lastStreamingChunk = '';
 }
 
 /** Add a blinking cursor element at the end of the streaming message. */

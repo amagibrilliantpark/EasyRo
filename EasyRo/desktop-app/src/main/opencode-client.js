@@ -11,6 +11,7 @@ class OpenCodeClient {
     const url = `${this.baseUrl}${endpoint}`;
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 30000);
+    const t0 = Date.now();
 
     try {
       const options = {
@@ -20,7 +21,9 @@ class OpenCodeClient {
       };
       if (body) options.body = JSON.stringify(body);
 
+      log.info('HTTP', `[Perf] ${method} ${endpoint} START`);
       const response = await fetch(url, options);
+      log.info('HTTP', `[Perf] ${method} ${endpoint} responded ${response.status} in ${Date.now() - t0}ms`);
       if (!response.ok) {
         const text = await response.text();
         let errorMessage = `HTTP ${response.status}`;
@@ -43,6 +46,7 @@ class OpenCodeClient {
       }
       return await response.text();
     } catch (err) {
+      log.error('HTTP', `[Perf] ${method} ${endpoint} FAILED in ${Date.now() - t0}ms:`, err.message);
       if (err.name === 'AbortError') {
         throw new Error(`Request timeout: ${method} ${endpoint}`);
       }
@@ -63,7 +67,7 @@ class OpenCodeClient {
     return this.request('POST', `/session/${id}/fork`, { messageID: messageId });
   }
   abortSession(id) { return this.request('POST', `/session/${id}/abort`); }
-  revertSession(id) { return this.request('POST', `/session/${id}/revert`); }
+  revertSession(id, messageId) { return this.request('POST', `/session/${id}/revert`, { messageID: messageId }); }
   unrevertSession(id) { return this.request('POST', `/session/${id}/unrevert`); }
   getSessionMessages(id) { return this.request('GET', `/session/${id}/message`); }
 
