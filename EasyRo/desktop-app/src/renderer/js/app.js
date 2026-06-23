@@ -9,6 +9,16 @@ document.addEventListener('DOMContentLoaded', () => {
     await window.Providers.loadProviders();
     await window.Providers.loadAgents();
 
+    // Update Rojo port display
+    try {
+      const status = await window.electronAPI.instance.status();
+      if (status && status.ports && status.ports.rojo) {
+        window.RightPanel.updatePortDisplay(status.ports.rojo);
+      }
+    } catch (error) {
+      console.error('Failed to get instance status:', error);
+    }
+
     // Restore saved agent
     const savedAgent = localStorage.getItem('easyro_agent');
     if (savedAgent) {
