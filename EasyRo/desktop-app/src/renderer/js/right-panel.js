@@ -57,6 +57,11 @@ function updateTodoList(todos) {
     const item = document.createElement('div');
     item.className = 'rp-todo-item';
 
+    // Highlight in_progress todo with accent color
+    if (todo.status === 'in_progress') {
+      item.classList.add('rp-todo-item-active');
+    }
+
     const check = document.createElement('span');
     check.className = 'todo-check';
     const isCompleted = todo.status === 'completed';
@@ -76,4 +81,12 @@ function clearTodoList() {
   if (container) container.innerHTML = '';
 }
 
-window.RightPanel = { updateSessionName, updateContextStats, updateTodoList, clearTodoList };
+/** Update the Rojo port display in the right panel. */
+function updatePortDisplay(port) {
+  const el = document.getElementById('rpPortValue');
+  if (el) {
+    el.textContent = port ? port : '---';
+  }
+}
+
+window.RightPanel = { updateSessionName, updateContextStats, updateTodoList, clearTodoList, updatePortDisplay };

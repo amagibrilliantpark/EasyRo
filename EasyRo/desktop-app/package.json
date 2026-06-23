@@ -1,6 +1,6 @@
 {
   "name": "easyro-desktop",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "EasyRo - Roblox Studio AI Assistant",
   "main": "src/main/main.js",
   "author": "EasyRo",

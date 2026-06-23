@@ -43,14 +43,16 @@ Rojo (`rojo.exe`) is included in the project — you don't need to install it se
 ## Usage
 
 1. Open Roblox Studio and load your project
-2. **Connect the Rojo plugin** — this is required for real-time sync:
+2. Start EasyRo
+3. **Check the Rojo port** — The port number is displayed in the right panel of EasyRo (e.g., "Port: 3000")
+4. **Connect the Rojo plugin** — this is required for real-time sync:
    - In Studio, go to **Plugins > Rojo > Connect**
+   - Enter the port number shown in EasyRo's right panel
    - You should see a "Connected" status
    - Without this connection, changes won't sync to Studio
-3. Start EasyRo
-4. Type what you want in the chat — the AI writes code and Rojo syncs it to Studio
+5. Type what you want in the chat — the AI writes code and Rojo syncs it to Studio
 
-> **Important:** The Rojo plugin must be connected in Studio before you start coding. If it's not connected, the AI's changes will be saved to files but won't appear in Studio.
+> **Important:** The Rojo plugin must be connected in Studio before you start coding. If it's not connected, the AI's changes will be saved to files but won't appear in Studio. Make sure to connect with the Rojo port displayed in EasyRo's right panel.
 
 ## Project structure
 
