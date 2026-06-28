@@ -12,7 +12,7 @@ const { app } = require('electron');
  */
 class Logger {
   constructor() {
-    this.isDev = process.argv.includes('--dev');
+    this.isDev = process.argv.includes('--dev') || process.argv.includes('dev');
     this.logDir = null;
     this.logFile = null;
     this.MAX_SIZE = 5 * 1024 * 1024; // 5 MB
@@ -112,8 +112,9 @@ class Logger {
     return line + '\n';
   }
 
-  /** Write a log entry to buffer (async flush to file). */
   _write(level, category, message, data) {
+    if (!this.isDev) return;
+
     this._init();
     const line = this._format(level, category, message, data);
 
@@ -126,15 +127,13 @@ class Logger {
     }
 
     // Console output in dev mode
-    if (this.isDev) {
-      const consoleLine = line.trim();
-      if (level === 'ERROR') {
-        console.error(consoleLine);
-      } else if (level === 'WARN') {
-        console.warn(consoleLine);
-      } else {
-        console.log(consoleLine);
-      }
+    const consoleLine = line.trim();
+    if (level === 'ERROR') {
+      console.error(consoleLine);
+    } else if (level === 'WARN') {
+      console.warn(consoleLine);
+    } else {
+      console.log(consoleLine);
     }
   }
 

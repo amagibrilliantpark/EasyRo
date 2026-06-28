@@ -215,6 +215,10 @@ document.addEventListener('DOMContentLoaded', () => {
       try { await window.electronAPI.session.saveCurrent(); } catch (e) {}
     }
 
+    // Clear workspace files so the user starts clean
+    console.log(`[Session] Clearing workspace for new chat`);
+    try { await window.electronAPI.session.restore(null); } catch (e) {}
+
     window.App.currentSession = null;
     window.Chat.resetStreamingAccum();
     window.Chat.hideAllStatusIndicators();
