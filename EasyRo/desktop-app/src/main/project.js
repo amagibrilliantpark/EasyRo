@@ -27,7 +27,17 @@ function ensureUserProject() {
   const marker = path.join(userProjectDir, 'default.project.json');
 
   if (fs.existsSync(marker)) {
-    log.info('SYSTEM', 'User project already initialised at', userProjectDir);
+    try {
+      JSON.parse(fs.readFileSync(marker, 'utf-8'));
+      log.info('SYSTEM', 'User project already initialised at', userProjectDir);
+    } catch {
+      log.warn('SYSTEM', 'Corrupt project JSON detected at', marker, '- reinitialising from template');
+      fs.rmSync(userProjectDir, { recursive: true, force: true });
+      const templateDir = path.join(process.resourcesPath, 'project');
+      if (fs.existsSync(templateDir)) {
+        fs.cpSync(templateDir, userProjectDir, { recursive: true });
+      }
+    }
   } else {
     const templateDir = path.join(process.resourcesPath, 'project');
     if (!fs.existsSync(templateDir)) {
