@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./EasyRo/assets/logo.svg" alt="EasyRo Logo" width="120">
+</p>
+
 ![EasyRo Banner](./EasyRo/assets/banner.svg)
 
 # EasyRo
