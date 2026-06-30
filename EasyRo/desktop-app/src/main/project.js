@@ -6,6 +6,37 @@ const log = require('./logger');
 const PROJECT_ID = 'default';
 
 /**
+ * Install the Rojo plugin into Roblox Studio's Plugins folder if missing.
+ * Handles both dev mode (file next to project) and packaged mode (extraResource).
+ */
+function ensureRojoPlugin() {
+  const pluginsDir = path.join(
+    process.env.LOCALAPPDATA || '',
+    'Roblox',
+    'Plugins'
+  );
+  const dest = path.join(pluginsDir, 'Rojo.rbxm');
+  if (fs.existsSync(dest)) return;
+
+  // 1) Packaged: bundled as extraResource
+  let src = process.resourcesPath
+    ? path.join(process.resourcesPath, 'Rojo.rbxm')
+    : '';
+  // 2) Dev: file next to project root
+  if (!fs.existsSync(src)) {
+    src = path.resolve(__dirname, '..', '..', '..', 'Rojo.rbxm');
+  }
+  if (!fs.existsSync(src)) {
+    log.warn('SYSTEM', 'Rojo.rbxm source not found – skipping plugin install');
+    return;
+  }
+
+  fs.mkdirSync(pluginsDir, { recursive: true });
+  fs.copyFileSync(src, dest);
+  log.info('SYSTEM', `Rojo plugin installed → ${dest}`);
+}
+
+/**
  * Ensure the user has a writable project directory with all required files.
  *
  * - Development: project files exist in the source tree → return directly.
@@ -62,6 +93,7 @@ function ensureUserProject() {
 /** Read project config and return { id, name, path }. */
 function getProject() {
   const projectPath = ensureUserProject();
+  ensureRojoPlugin();
   const projectJson = path.join(projectPath, 'default.project.json');
   let name = 'EasyRo';
   try {
