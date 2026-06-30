@@ -1,10 +1,10 @@
 {
   "name": "easyro-desktop",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "EasyRo - Roblox Studio AI Assistant",
   "main": "src/main/main.js",
   "author": "EasyRo",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
@@ -90,7 +90,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "createDesktopShortcut": false,
       "createStartMenuShortcut": true,
       "shortcutName": "EasyRo",
       "deleteAppDataOnUninstall": true,

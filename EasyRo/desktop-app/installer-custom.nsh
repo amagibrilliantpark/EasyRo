@@ -16,6 +16,7 @@ ManifestDPIAwareness "PerMonitorV2,System"
 
   Section "Desktop Shortcut" SecDesktopShortcut
     SectionIn 1
+    CreateShortCut "$DESKTOP\EasyRo.lnk" "$INSTDIR\EasyRo.exe" "" "$INSTDIR\EasyRo.exe" 0
   SectionEnd
 
   # Hide the main "install" section from components list
