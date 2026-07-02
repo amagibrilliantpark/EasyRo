@@ -87,6 +87,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     check: () => ipcRenderer.invoke('health:check')
   },
 
+  // Open external URL
+  openExternal: (url) => ipcRenderer.invoke('open:external', url),
+
   // SSE Events (real-time updates from OpenCode)
   onEvent: (callback) => {
     const handler = (event, data) => callback(data);
