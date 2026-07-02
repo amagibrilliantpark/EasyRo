@@ -57,6 +57,12 @@
               <line x1="2" y1="10" x2="12" y2="10"/>
             </svg>
           </button>
+          <button class="btn-new btn-settings" id="settingsBtn" title="Settings">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="7" cy="7" r="3"/>
+              <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"/>
+            </svg>
+          </button>
           <button class="btn-new btn-search" id="searchToggle" title="Search Sessions">
             <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
               <circle cx="6" cy="6" r="4"/>
@@ -232,6 +238,86 @@
       <div class="rm-footer">
         <button class="rm-btn-cancel" id="rmCancel">Cancel</button>
         <button class="rm-btn-revert" id="rmRevert">Revert</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Page (hidden by default) -->
+  <div class="settings-page hidden" id="settingsPage">
+    <svg class="settings-bg-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="sb1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.6)"/><stop offset="100%" stop-color="rgba(175,210,248,0.1)"/></radialGradient>
+        <radialGradient id="sb2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.55)"/><stop offset="100%" stop-color="rgba(190,218,250,0.1)"/></radialGradient>
+        <radialGradient id="sb3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(200,222,252,0.5)"/><stop offset="100%" stop-color="rgba(200,222,252,0.1)"/></radialGradient>
+        <radialGradient id="sb4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(180,212,246,0.55)"/><stop offset="100%" stop-color="rgba(180,212,246,0.1)"/></radialGradient>
+        <radialGradient id="sb5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(195,220,250,0.5)"/><stop offset="100%" stop-color="rgba(195,220,250,0.1)"/></radialGradient>
+        <radialGradient id="sb6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(185,215,248,0.45)"/><stop offset="100%" stop-color="rgba(185,215,248,0.1)"/></radialGradient>
+        <radialGradient id="sb7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(170,208,245,0.5)"/><stop offset="100%" stop-color="rgba(170,208,245,0.1)"/></radialGradient>
+        <filter id="sblur1"><feGaussianBlur stdDeviation="45"/></filter>
+      </defs>
+      <rect width="100%" height="100%" fill="#f5f7fa"/>
+      <g filter="url(#sblur1)">
+        <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#sb1)" transform="rotate(-18 120 110)"/>
+        <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#sb2)" transform="rotate(12 1280 80)"/>
+        <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#sb3)" transform="rotate(25 380 480)"/>
+        <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#sb4)" transform="rotate(-10 1050 420)"/>
+        <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#sb5)" transform="rotate(8 200 810)"/>
+        <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#sb6)" transform="rotate(-20 1340 780)"/>
+        <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#sb7)" transform="rotate(5 720 460)"/>
+      </g>
+    </svg>
+    <div class="settings-header">
+      <button class="settings-close" id="settingsClose" title="Close Settings">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4-4M6 8l4 4"/></svg>
+      </button>
+      <div class="settings-title"></div>
+    </div>
+    <div class="settings-content">
+      <div class="settings-left-panel">
+        <div class="settings-section">
+          <div class="settings-section-title" data-target="generalCard">General</div>
+          <div class="settings-card hidden" id="generalCard"></div>
+        </div>
+        <div class="settings-section">
+          <div class="settings-section-title" data-target="aboutCard">About</div>
+          <div class="settings-card hidden" id="aboutCard"></div>
+        </div>
+      </div>
+      <div class="settings-right-panel">
+        <div class="settings-right-content hidden" id="generalContent">
+          <div class="settings-subsection-title">Theme</div>
+          <div class="theme-buttons">
+            <button class="theme-btn" id="lightThemeBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+              <span>Light</span>
+            </button>
+            <button class="theme-btn" id="darkThemeBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+              <span>Dark</span>
+            </button>
+          </div>
+        </div>
+        <div class="settings-right-content hidden" id="aboutContent">
+          <div class="about-description">Start building with EasyRo — a free AI coding agent for Roblox. Work with AI to build your games. Changes sync to Roblox Studio in real time.</div>
+          <button class="feedback-btn" id="feedbackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span>Feedback</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

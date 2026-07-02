@@ -1,4 +1,4 @@
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const log = require('./logger');
 
 /** Register all IPC handlers for renderer ↔ main communication. */
@@ -228,6 +228,10 @@ function setupIpcHandlers(instanceManager, sessionManager, project) {
 
   ipcMain.handle('session:get-active', async () => {
     return sessionManager ? sessionManager.getActiveSession() : null;
+  });
+
+  ipcMain.handle('open:external', async (event, url) => {
+    shell.openExternal(url);
   });
 }
 
