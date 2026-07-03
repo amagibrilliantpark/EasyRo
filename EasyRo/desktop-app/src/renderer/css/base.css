@@ -4,13 +4,13 @@
   --bg-primary: #f5f7fa;
   --bg-sidebar: rgba(255,255,255,0.58);
   --bg-panel: rgba(255,255,255,0.85);
-  --bg-modal: rgba(255,255,255,0.90);
+  --bg-modal: #ffffff;
   --bg-input: rgba(255,255,255,0.70);
   --text-primary: #18283a;
   --text-secondary: #4a5a6a;
   --text-muted: #7a8a9a;
-  --border-color: rgba(180,210,240,0.50);
-  --border-sidebar: rgba(180,210,240,0.38);
+  --border-color: rgb(180,210,240);
+  --border-sidebar: rgba(180,210,240,0.65);
   --accent-color: #4e87bb;
   --accent-hover: rgba(210,230,250,0.50);
   --accent-glass: rgba(160,200,235,0.09);
