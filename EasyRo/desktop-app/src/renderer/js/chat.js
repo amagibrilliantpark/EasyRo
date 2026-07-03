@@ -75,6 +75,7 @@ function setStopMode(active) {
   const input = document.querySelector('.prompt-input');
   btn.classList.toggle('stop-mode', active);
   input.disabled = active;
+  if (!active) setTimeout(() => input.focus(), 50);
 }
 
 window.Chat = window.Chat || {};

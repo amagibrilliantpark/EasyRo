@@ -205,29 +205,20 @@ function handleSessionIdle(properties) {
   activeTextPartID = null;
 
   const sessionToRefresh = window.App.currentSession;
-  console.log('[RevertDebug] handleSessionIdle called, sessionToRefresh:', sessionToRefresh);
   if (sessionToRefresh) {
     window.electronAPI.session.messages(sessionToRefresh).then(messages => {
-      console.log('[RevertDebug] session.messages response received, currentSession:', window.App.currentSession);
-      if (window.App.currentSession !== sessionToRefresh) {
-        console.log('[RevertDebug] Session changed during fetch, skipping render');
-        return;
-      }
+      if (window.App.currentSession !== sessionToRefresh) return;
       const msgList = messages.value || messages;
       const existingMsgs = document.querySelectorAll('#chatArea .message');
-      console.log('[RevertDebug] API returned', msgList.length, 'messages, UI has', existingMsgs.length, 'messages');
 
       // Update existing user messages with their IDs (they were sent without IDs)
-      let updatedCount = 0;
       const uiUserMsgs = Array.from(existingMsgs).filter(m => m.classList.contains('user-message'));
       const apiUserMsgs = msgList.filter(m => m.info && m.info.role === 'user');
-      
       for (let i = 0; i < Math.min(uiUserMsgs.length, apiUserMsgs.length); i++) {
         const uiMsg = uiUserMsgs[i];
         const apiMsg = apiUserMsgs[i];
         if (!uiMsg.dataset.messageId && apiMsg.info && apiMsg.info.id) {
           uiMsg.dataset.messageId = apiMsg.info.id;
-          // Add revert button if not already present
           if (!uiMsg.querySelector('.msg-revert-btn')) {
             const revertBtn = document.createElement('button');
             revertBtn.className = 'msg-revert-btn';
@@ -237,31 +228,27 @@ function handleSessionIdle(properties) {
             revertBtn.addEventListener('click', () => window.Modals.showRevertModal(apiMsg.info.id, cardText));
             uiMsg.appendChild(revertBtn);
           }
-          updatedCount++;
-          console.log('[RevertDebug] Updated user message ID:', apiMsg.info.id);
         }
       }
-      if (updatedCount > 0) {
-        console.log('[RevertDebug] Updated', updatedCount, 'user message IDs');
-      }
 
-      if (msgList.length > existingMsgs.length) {
-        const newCount = msgList.length - existingMsgs.length;
-        const newMsgs = msgList.slice(existingMsgs.length);
-        console.log('[RevertDebug] Appending', newCount, 'new messages');
+      // Only count API messages that have actual text content (create UI divs)
+      const textMsgList = msgList.filter(msg =>
+        msg.parts && msg.parts.some(p => p.type === 'text' && p.text)
+      );
+
+      // Compare text-message count vs UI div count (includes streaming div)
+      if (textMsgList.length > existingMsgs.length) {
+        const startIndex = existingMsgs.length;
+        const newMsgs = textMsgList.slice(startIndex);
         for (const msg of newMsgs) {
           const role = msg.info ? msg.info.role : 'assistant';
           const id = msg.info ? msg.info.id : null;
-          if (msg.parts) {
-            for (const part of msg.parts) {
-              if (part.type === 'text' && part.text) {
-                window.Chat.appendMessage(role, part.text, id);
-              }
+          for (const part of msg.parts) {
+            if (part.type === 'text' && part.text) {
+              window.Chat.appendMessage(role, part.text, id);
             }
           }
         }
-      } else {
-        console.log('[RevertDebug] No new messages to append, skipping');
       }
     }).catch(err => {
       console.error('[RevertDebug] Failed to re-fetch messages after idle:', err);

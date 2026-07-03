@@ -233,6 +233,28 @@ function setupIpcHandlers(instanceManager, sessionManager, project) {
   ipcMain.handle('open:external', async (event, url) => {
     shell.openExternal(url);
   });
+
+  ipcMain.handle('window:set-theme', (event, theme) => {
+    const mainWindow = require('./window').getMainWindow();
+    if (mainWindow) {
+      mainWindow.setBackgroundColor(theme === 'dark' ? '#0f1923' : '#f5f7fa');
+      if (mainWindow.setTitleBarOverlay) {
+        if (theme === 'dark') {
+          mainWindow.setTitleBarOverlay({
+            color: '#0f1923',
+            symbolColor: '#ffffff',
+            height: 22
+          });
+        } else {
+          mainWindow.setTitleBarOverlay({
+            color: '#f5f7fa',
+            symbolColor: '#18283a',
+            height: 22
+          });
+        }
+      }
+    }
+  });
 }
 
 module.exports = { setupIpcHandlers };
