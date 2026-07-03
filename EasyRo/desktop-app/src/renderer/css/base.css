@@ -294,7 +294,8 @@ body { background-color: #f5f7fa; }
 
 .settings-close {
   position: absolute;
-  left: 20px;
+  left: 16px;
+  top: 14px;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -334,7 +335,12 @@ body { background-color: #f5f7fa; }
   flex-direction: column;
   gap: 6px;
   border-right: 2px solid rgba(180, 210, 240, 0.5);
+  overflow-y: auto;
 }
+
+.settings-left-panel::-webkit-scrollbar { width: 3px; }
+.settings-left-panel::-webkit-scrollbar-track { background: transparent; }
+.settings-left-panel::-webkit-scrollbar-thumb { background: rgba(160,200,235,0.30); border-radius: 2px; }
 
 .settings-section {
   display: flex;
@@ -343,9 +349,10 @@ body { background-color: #f5f7fa; }
 }
 
 .settings-section-title {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 14px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
   font-weight: 600;
+  letter-spacing: 2px;
   color: #18283a;
   padding: 8px 12px;
   cursor: pointer;
