@@ -90,6 +90,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Open external URL
   openExternal: (url) => ipcRenderer.invoke('open:external', url),
 
+  // Window controls
+  window: {
+    setTheme: (theme) => ipcRenderer.invoke('window:set-theme', theme)
+  },
+
   // SSE Events (real-time updates from OpenCode)
   onEvent: (callback) => {
     const handler = (event, data) => callback(data);

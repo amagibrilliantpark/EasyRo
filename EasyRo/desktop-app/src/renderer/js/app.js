@@ -109,75 +109,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ── Settings page ──
-  const settingsBtn = document.getElementById('settingsBtn');
-  const settingsPage = document.getElementById('settingsPage');
-  const settingsClose = document.getElementById('settingsClose');
-
-  settingsBtn.addEventListener('click', () => {
-    settingsPage.classList.remove('hidden');
-    // Auto-select General
-    document.querySelector('.settings-section-title[data-target="generalCard"]').click();
-    console.log(`[UI] Settings page opened`);
-  });
-
-  settingsClose.addEventListener('click', () => {
-    settingsPage.classList.add('hidden');
-    console.log(`[UI] Settings page closed`);
-  });
-
-  // Toggle cards on section title click
-  document.querySelectorAll('.settings-section-title').forEach(title => {
-    title.addEventListener('click', () => {
-      const targetId = title.dataset.target;
-      // Map card IDs to content IDs
-      const contentMap = {
-        'generalCard': 'generalContent',
-        'aboutCard': 'aboutContent'
-      };
-      const targetContentId = contentMap[targetId];
-      const targetContent = document.getElementById(targetContentId);
-      if (targetContent) {
-        // Remove active class from all titles
-        document.querySelectorAll('.settings-section-title').forEach(t => t.classList.remove('active'));
-        // Hide all right panel content
-        document.querySelectorAll('.settings-right-content').forEach(c => c.classList.add('hidden'));
-        // Show target content and add active class to clicked title
-        targetContent.classList.remove('hidden');
-        title.classList.add('active');
-        console.log(`[UI] Content ${targetContentId} activated`);
-      }
-    });
-  });
-
-  // Theme button active state
-  const lightThemeBtn = document.getElementById('lightThemeBtn');
-  const darkThemeBtn = document.getElementById('darkThemeBtn');
-
-  lightThemeBtn.addEventListener('click', () => {
-    lightThemeBtn.classList.add('active');
-    darkThemeBtn.classList.remove('active');
-    console.log(`[UI] Light theme selected`);
-  });
-
-  darkThemeBtn.addEventListener('click', () => {
-    darkThemeBtn.classList.add('active');
-    lightThemeBtn.classList.remove('active');
-    console.log(`[UI] Dark theme selected`);
-  });
-
-  // Feedback button
-  document.getElementById('feedbackBtn').addEventListener('click', () => {
-    window.electronAPI.openExternal('https://docs.google.com/forms/d/e/1FAIpQLSfbJnE-m8jSKKqtSXtSyqwJMCpyQPjrsmFSjh86aKSNf1rlTw/viewform?usp=header');
-  });
-
-  // Close settings on Escape key
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !settingsPage.classList.contains('hidden')) {
-      settingsPage.classList.add('hidden');
-      console.log(`[UI] Settings page closed via Escape`);
-    }
-  });
+  // ── Init Settings ──
+  window.Settings.init();
 
   // ── Search ──
   const searchToggle = document.getElementById('searchToggle');

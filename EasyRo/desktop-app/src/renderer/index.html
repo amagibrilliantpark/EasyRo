@@ -12,11 +12,12 @@
   <link rel="stylesheet" href="css/chat.css">
   <link rel="stylesheet" href="css/right-panel.css">
   <link rel="stylesheet" href="css/modal.css">
+  <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/prompt.css">
 </head>
 <body>
 
-  <svg class="bg-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
+  <svg class="bg-canvas bg-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
     <defs>
       <radialGradient id="b1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.36)"/><stop offset="100%" stop-color="rgba(175,210,248,0)"/></radialGradient>
       <radialGradient id="b2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.30)"/><stop offset="100%" stop-color="rgba(190,218,250,0)"/></radialGradient>
@@ -37,15 +38,36 @@
       <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#b7)" transform="rotate(5 720 460)"/>
     </g>
   </svg>
+  <svg class="bg-canvas bg-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
+    <defs>
+      <radialGradient id="bd1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-1)"/><stop offset="100%" stop-color="var(--gradient-1)"/></radialGradient>
+      <radialGradient id="bd2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-2)"/><stop offset="100%" stop-color="var(--gradient-2)"/></radialGradient>
+      <radialGradient id="bd3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-3)"/><stop offset="100%" stop-color="var(--gradient-3)"/></radialGradient>
+      <radialGradient id="bd4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-4)"/><stop offset="100%" stop-color="var(--gradient-4)"/></radialGradient>
+      <radialGradient id="bd5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-5)"/><stop offset="100%" stop-color="var(--gradient-5)"/></radialGradient>
+      <radialGradient id="bd6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-6)"/><stop offset="100%" stop-color="var(--gradient-6)"/></radialGradient>
+      <radialGradient id="bd7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-7)"/><stop offset="100%" stop-color="var(--gradient-7)"/></radialGradient>
+      <filter id="blur1d"><feGaussianBlur stdDeviation="60"/></filter>
+    </defs>
+    <g filter="url(#blur1d)">
+      <ellipse cx="360" cy="200" rx="900" ry="450" fill="url(#bd1)"/>
+      <ellipse cx="1080" cy="200" rx="900" ry="450" fill="url(#bd2)"/>
+      <ellipse cx="200" cy="650" rx="800" ry="500" fill="url(#bd3)"/>
+      <ellipse cx="1240" cy="650" rx="800" ry="500" fill="url(#bd4)"/>
+      <ellipse cx="360" cy="800" rx="900" ry="400" fill="url(#bd5)"/>
+      <ellipse cx="1080" cy="800" rx="900" ry="400" fill="url(#bd6)"/>
+      <ellipse cx="720" cy="460" rx="1100" ry="700" fill="url(#bd7)"/>
+    </g>
+  </svg>
 
   <div class="layout">
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
           <svg class="logo-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="#c2d9f0"/>
-            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="#18283a"/>
-            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="#f5f7fa"/>
+            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="var(--logo-fill)"/>
+            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="var(--logo-dark)"/>
+            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="var(--logo-accent)"/>
           </svg>
           <span class="sidebar-logo-text">Easy<em>Ro</em></span>
         </div>
@@ -121,9 +143,9 @@
       <div class="chat-area" id="chatArea">
         <div class="empty-state active" id="emptyState">
           <svg class="empty-state-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="#c2d9f0"/>
-            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="#18283a"/>
-            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="#f5f7fa"/>
+            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="var(--logo-fill)"/>
+            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="var(--logo-dark)"/>
+            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="var(--logo-accent)"/>
           </svg>
           <div class="empty-state-text">Easy<em>Ro</em></div>
         </div>
@@ -207,7 +229,7 @@
       <div class="rp-todo-list" id="todoList"></div>
       <div class="rp-footer">
         <span class="rp-footer-logo">Easy<em>Ro</em></span>
-        <span class="rp-footer-ver">v1.0.3</span>
+        <span class="rp-footer-ver">v1.1.0</span>
       </div>
     </aside>
   </div>
@@ -220,9 +242,11 @@
   <script src="js/chat.js"></script>
   <script src="js/sessions.js"></script>
   <script src="js/sse.js"></script>
-  <script src="js/modals.js"></script>
+  <script src="js/modals/question.js"></script>
+  <script src="js/modals/revert.js"></script>
   <script src="js/providers.js"></script>
   <script src="js/right-panel.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/app.js"></script>
 
   <!-- Revert Modal (hidden by default) -->
@@ -244,7 +268,7 @@
 
   <!-- Settings Page (hidden by default) -->
   <div class="settings-page hidden" id="settingsPage">
-    <svg class="settings-bg-canvas" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+    <svg class="settings-bg-canvas sbg-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
       <defs>
         <radialGradient id="sb1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.6)"/><stop offset="100%" stop-color="rgba(175,210,248,0.1)"/></radialGradient>
         <radialGradient id="sb2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.55)"/><stop offset="100%" stop-color="rgba(190,218,250,0.1)"/></radialGradient>
@@ -255,7 +279,7 @@
         <radialGradient id="sb7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(170,208,245,0.5)"/><stop offset="100%" stop-color="rgba(170,208,245,0.1)"/></radialGradient>
         <filter id="sblur1"><feGaussianBlur stdDeviation="45"/></filter>
       </defs>
-      <rect width="100%" height="100%" fill="#f5f7fa"/>
+      <rect width="100%" height="100%" fill="var(--bg-primary)"/>
       <g filter="url(#sblur1)">
         <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#sb1)" transform="rotate(-18 120 110)"/>
         <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#sb2)" transform="rotate(12 1280 80)"/>
@@ -264,6 +288,28 @@
         <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#sb5)" transform="rotate(8 200 810)"/>
         <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#sb6)" transform="rotate(-20 1340 780)"/>
         <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#sb7)" transform="rotate(5 720 460)"/>
+      </g>
+    </svg>
+    <svg class="settings-bg-canvas sbg-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <radialGradient id="sbd1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-1)"/><stop offset="100%" stop-color="var(--gradient-1)"/></radialGradient>
+        <radialGradient id="sbd2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-2)"/><stop offset="100%" stop-color="var(--gradient-2)"/></radialGradient>
+        <radialGradient id="sbd3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-3)"/><stop offset="100%" stop-color="var(--gradient-3)"/></radialGradient>
+        <radialGradient id="sbd4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-4)"/><stop offset="100%" stop-color="var(--gradient-4)"/></radialGradient>
+        <radialGradient id="sbd5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-5)"/><stop offset="100%" stop-color="var(--gradient-5)"/></radialGradient>
+        <radialGradient id="sbd6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-6)"/><stop offset="100%" stop-color="var(--gradient-6)"/></radialGradient>
+        <radialGradient id="sbd7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-7)"/><stop offset="100%" stop-color="var(--gradient-7)"/></radialGradient>
+        <filter id="sblur1d"><feGaussianBlur stdDeviation="60"/></filter>
+      </defs>
+      <rect width="100%" height="100%" fill="var(--bg-primary)"/>
+      <g filter="url(#sblur1d)">
+        <ellipse cx="360" cy="200" rx="900" ry="450" fill="url(#sbd1)"/>
+        <ellipse cx="1080" cy="200" rx="900" ry="450" fill="url(#sbd2)"/>
+        <ellipse cx="200" cy="650" rx="800" ry="500" fill="url(#sbd3)"/>
+        <ellipse cx="1240" cy="650" rx="800" ry="500" fill="url(#sbd4)"/>
+        <ellipse cx="360" cy="800" rx="900" ry="400" fill="url(#sbd5)"/>
+        <ellipse cx="1080" cy="800" rx="900" ry="400" fill="url(#sbd6)"/>
+        <ellipse cx="720" cy="460" rx="1100" ry="700" fill="url(#sbd7)"/>
       </g>
     </svg>
     <div class="settings-header">
