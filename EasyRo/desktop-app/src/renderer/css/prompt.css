@@ -67,7 +67,7 @@ body[data-theme="dark"] .btn-send.stop-mode { background: #b8450a; }
 /* ── Popup ── */
 .popup-menu {
   display: none; position: absolute; bottom: calc(100% + 10px); left: 0;
-  background: var(--bg-modal); border: none; border-radius: 12px; padding: 6px;
+  background: var(--bg-modal); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px;
   box-shadow: 0 8px 32px var(--shadow-color), 0 2px 8px var(--shadow-color);
   z-index: 200; min-width: 140px;
 }
