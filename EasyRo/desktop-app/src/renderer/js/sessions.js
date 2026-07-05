@@ -158,13 +158,7 @@ async function selectSession(sessionId) {
     const session = window.App.sessions.find(s => s.id === sessionId);
     if (session) {
       window.RightPanel.updateSessionName(session.title || 'Untitled');
-      window.App.currentSessionTokens = session.tokens || null;
-      window.RightPanel.updateContextStats({
-        input: session.tokens ? session.tokens.input : 0,
-        output: session.tokens ? session.tokens.output : 0,
-        reasoning: session.tokens ? session.tokens.reasoning : 0,
-        cost: session.cost || 0
-      });
+      window.RightPanel.updateContextStats(null);
     }
 
     // 4. Load todo and messages
@@ -191,6 +185,12 @@ async function selectSession(sessionId) {
       const msgList = messages.value || messages;
       console.log(`[Session] Messages loaded in ${(performance.now() - msgStart).toFixed(0)}ms, count: ${msgList.length}`);
       window.Chat.renderMessages(messages);
+
+      // Aggregate tokens from assistant messages
+      const tokenData = window.RightPanel.aggregateTokensFromMessages(messages);
+      if (window.App.currentSession === sessionId) {
+        window.RightPanel.updateContextStats(tokenData);
+      }
     } catch (error) {
       console.warn(`[Session] Messages load failed:`, error.message);
     }
