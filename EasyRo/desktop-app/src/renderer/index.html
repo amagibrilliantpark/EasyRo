@@ -56,7 +56,7 @@
                     <stop offset="0%" stop-color="rgba(170,208,245,0.28)" />
                     <stop offset="100%" stop-color="rgba(170,208,245,0)" />
                 </radialGradient>
-                <filter id="blur1"><feGaussianBlur stdDeviation="45" /></filter>
+                <filter id="blur1"><feGaussianBlur stdDeviation="10" /></filter>
             </defs>
             <g filter="url(#blur1)">
                 <ellipse
@@ -179,9 +179,7 @@
                         stop-opacity="0"
                     />
                 </radialGradient>
-                <filter id="blur1d">
-                    <feGaussianBlur stdDeviation="45" />
-                </filter>
+                <filter id="blur1d"><feGaussianBlur stdDeviation="10" /></filter>
             </defs>
             <g filter="url(#blur1d)">
                 <ellipse
@@ -643,7 +641,7 @@
                 <div class="rp-todo-list" id="todoList"></div>
                 <div class="rp-footer">
                     <span class="rp-footer-logo">Easy<em>Ro</em></span>
-                    <span class="rp-footer-ver">v1.1.1</span>
+                    <span class="rp-footer-ver">v1.1.2</span>
                 </div>
             </aside>
         </div>
@@ -738,9 +736,7 @@
                             stop-color="rgba(170,208,245,0.1)"
                         />
                     </radialGradient>
-                    <filter id="sblur1">
-                        <feGaussianBlur stdDeviation="45" />
-                    </filter>
+                    <filter id="sblur1"><feGaussianBlur stdDeviation="10" /></filter>
                 </defs>
                 <rect width="100%" height="100%" fill="var(--bg-primary)" />
                 <g filter="url(#sblur1)">
@@ -864,9 +860,7 @@
                             stop-opacity="0"
                         />
                     </radialGradient>
-                    <filter id="sblur1d">
-                        <feGaussianBlur stdDeviation="45" />
-                    </filter>
+                    <filter id="sblur1d"><feGaussianBlur stdDeviation="10" /></filter>
                 </defs>
                 <g filter="url(#sblur1d)">
                     <ellipse

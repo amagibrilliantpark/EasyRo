@@ -44,9 +44,9 @@ async function getSessions(useCache = true) {
 
 /** Split sessions into attached/normal groups and render both lists. */
 function renderSessionList() {
-  const attachedContainer = document.getElementById("attachedSessions");
-  const normalContainer = document.getElementById("normalSessions");
-  const attachedLabel = document.getElementById("attachedLabel");
+  const attachedContainer = Utils.$("attachedSessions");
+  const normalContainer = Utils.$("normalSessions");
+  const attachedLabel = Utils.$("attachedLabel");
 
   attachedContainer.innerHTML = "";
   normalContainer.innerHTML = "";
@@ -265,11 +265,9 @@ async function deleteSession(sessionId) {
       window.App.currentSession = null;
       window.Chat.resetStreamingAccum();
       window.Chat.hideAllStatusIndicators();
-      document.getElementById("emptyState").classList.add("active");
-      document
-        .getElementById("chatArea")
-        .querySelectorAll(".message, .streaming-cursor")
-        .forEach((m) => m.remove());
+      Utils.$("emptyState").classList.add("active");
+      const chatArea = Utils.$("chatArea");
+      chatArea.querySelectorAll(".message, .streaming-cursor").forEach((m) => m.remove());
       window.RightPanel.updateSessionName("New Chat");
       window.RightPanel.clearTodoList();
       window.RightPanel.updateContextStats(null);

@@ -157,7 +157,7 @@ function handleSessionStatus(properties) {
     : -1;
   console.log(`[Perf] 🔄 SessionStatus: ${status}, elapsed=${elapsed}ms`);
 
-  const statusEl = document.getElementById("sidebarStatus");
+  const statusEl = Utils.$("sidebarStatus");
   if (!statusEl) return;
 
   // Real SessionStatus values are only "idle" | "busy" | "retry" (see opencode's
@@ -221,7 +221,7 @@ function handleSessionIdle(properties) {
     }
   }
 
-  const statusEl = document.getElementById("sidebarStatus");
+  const statusEl = Utils.$("sidebarStatus");
   if (!statusEl) return;
 
   const currentText = statusEl.textContent;
@@ -316,7 +316,7 @@ function handleSessionError(properties) {
   const eventSession = properties.sessionID || properties.id;
   if (eventSession && eventSession !== window.App.currentSession) return;
 
-  const statusEl = document.getElementById("sidebarStatus");
+  const statusEl = Utils.$("sidebarStatus");
   if (statusEl) statusEl.textContent = "Error";
   window.Chat.setStopMode(false);
   isCompacting = false;
@@ -370,8 +370,8 @@ function handleTodoUpdated(properties) {
   if (Array.isArray(todos)) {
     window.RightPanel.updateTodoList(todos);
     // Auto-open todo list when AI creates/updates todos
-    const todoList = document.getElementById("todoList");
-    const todoHeader = document.getElementById("todoHeader");
+    const todoList = Utils.$("todoList");
+    const todoHeader = Utils.$("todoHeader");
     if (
       todoList &&
       !todoList.classList.contains("active") &&
