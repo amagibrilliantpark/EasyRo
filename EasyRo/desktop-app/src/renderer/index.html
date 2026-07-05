@@ -1,370 +1,1067 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
-  <title>EasyRo</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/base.css">
-  <link rel="stylesheet" href="css/chat.css">
-  <link rel="stylesheet" href="css/right-panel.css">
-  <link rel="stylesheet" href="css/modal.css">
-  <link rel="stylesheet" href="css/settings.css">
-  <link rel="stylesheet" href="css/prompt.css">
-</head>
-<body>
-
-  <svg class="bg-canvas bg-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
-    <defs>
-      <radialGradient id="b1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.36)"/><stop offset="100%" stop-color="rgba(175,210,248,0)"/></radialGradient>
-      <radialGradient id="b2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.30)"/><stop offset="100%" stop-color="rgba(190,218,250,0)"/></radialGradient>
-      <radialGradient id="b3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(200,222,252,0.28)"/><stop offset="100%" stop-color="rgba(200,222,252,0)"/></radialGradient>
-      <radialGradient id="b4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(180,212,246,0.32)"/><stop offset="100%" stop-color="rgba(180,212,246,0)"/></radialGradient>
-      <radialGradient id="b5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(195,220,250,0.26)"/><stop offset="100%" stop-color="rgba(195,220,250,0)"/></radialGradient>
-      <radialGradient id="b6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(185,215,248,0.22)"/><stop offset="100%" stop-color="rgba(185,215,248,0)"/></radialGradient>
-      <radialGradient id="b7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(170,208,245,0.28)"/><stop offset="100%" stop-color="rgba(170,208,245,0)"/></radialGradient>
-      <filter id="blur1"><feGaussianBlur stdDeviation="45"/></filter>
-    </defs>
-    <g filter="url(#blur1)">
-      <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#b1)" transform="rotate(-18 120 110)"/>
-      <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#b2)" transform="rotate(12 1280 80)"/>
-      <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#b3)" transform="rotate(25 380 480)"/>
-      <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#b4)" transform="rotate(-10 1050 420)"/>
-      <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#b5)" transform="rotate(8 200 810)"/>
-      <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#b6)" transform="rotate(-20 1340 780)"/>
-      <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#b7)" transform="rotate(5 720 460)"/>
-    </g>
-  </svg>
-  <svg class="bg-canvas bg-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
-    <defs>
-      <radialGradient id="bd1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-1)"/><stop offset="100%" stop-color="var(--gradient-1)" stop-opacity="0"/></radialGradient>
-      <radialGradient id="bd2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-2)"/><stop offset="100%" stop-color="var(--gradient-2)" stop-opacity="0"/></radialGradient>
-      <radialGradient id="bd3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-3)"/><stop offset="100%" stop-color="var(--gradient-3)" stop-opacity="0"/></radialGradient>
-      <radialGradient id="bd4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-4)"/><stop offset="100%" stop-color="var(--gradient-4)" stop-opacity="0"/></radialGradient>
-      <radialGradient id="bd5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-5)"/><stop offset="100%" stop-color="var(--gradient-5)" stop-opacity="0"/></radialGradient>
-      <radialGradient id="bd6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-6)"/><stop offset="100%" stop-color="var(--gradient-6)" stop-opacity="0"/></radialGradient>
-      <radialGradient id="bd7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-7)"/><stop offset="100%" stop-color="var(--gradient-7)" stop-opacity="0"/></radialGradient>
-      <filter id="blur1d"><feGaussianBlur stdDeviation="45"/></filter>
-    </defs>
-    <g filter="url(#blur1d)">
-      <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#bd1)" transform="rotate(-18 120 110)"/>
-      <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#bd2)" transform="rotate(12 1280 80)"/>
-      <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#bd3)" transform="rotate(25 380 480)"/>
-      <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#bd4)" transform="rotate(-10 1050 420)"/>
-      <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#bd5)" transform="rotate(8 200 810)"/>
-      <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#bd6)" transform="rotate(-20 1340 780)"/>
-      <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#bd7)" transform="rotate(5 720 460)"/>
-    </g>
-  </svg>
-
-  <div class="layout">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-logo">
-          <svg class="logo-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="var(--logo-fill)"/>
-            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="var(--logo-dark)"/>
-            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="var(--logo-accent)"/>
-          </svg>
-          <span class="sidebar-logo-text">Easy<em>Ro</em></span>
-        </div>
-        <div class="sidebar-btns">
-          <button class="btn-new btn-sidebar-toggle" id="sidebarToggle" title="Toggle Sidebar">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <line x1="2" y1="4" x2="12" y2="4"/>
-              <line x1="2" y1="7" x2="10" y2="7"/>
-              <line x1="2" y1="10" x2="12" y2="10"/>
-            </svg>
-          </button>
-          <button class="btn-new btn-settings" id="settingsBtn" title="Settings">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="7" cy="7" r="3"/>
-              <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"/>
-            </svg>
-          </button>
-          <button class="btn-new btn-search" id="searchToggle" title="Search Sessions">
-            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
-              <circle cx="6" cy="6" r="4"/>
-              <line x1="9" y1="9" x2="12.5" y2="12.5"/>
-            </svg>
-          </button>
-          <button class="btn-new" id="newChatBtn" title="New Chat">
-            <svg viewBox="0 0 14 14" fill="none">
-              <line x1="7" y1="1" x2="7" y2="13"/>
-              <line x1="1" y1="7" x2="13" y2="7"/>
-            </svg>
-          </button>
-        </div>
-      </div>
-      <div class="search-bar" id="searchBar">
-        <input type="text" id="searchInput" placeholder="Search">
-        <button class="search-close" id="searchClose">
-          <svg viewBox="0 0 14 14"><line x1="3" y1="3" x2="11" y2="11"/><line x1="11" y1="3" x2="3" y2="11"/></svg>
-        </button>
-      </div>
-
-      <div class="session-list" id="sessionList">
-        <div class="session-section-label" id="attachedLabel" style="display:none">Attached</div>
-        <div id="attachedSessions"></div>
-        <div class="session-section-label">Sessions</div>
-        <div id="normalSessions"></div>
-      </div>
-      <div class="sidebar-bottom-space"></div>
-      <div class="sidebar-status" id="sidebarStatus">Starting...</div>
-    </aside>
-
-    <main class="main">
-      <!-- Center Search Modal (hidden by default) -->
-      <div class="center-search-modal hidden" id="centerSearchModal">
-        <div class="center-search-backdrop" id="centerSearchBackdrop"></div>
-        <div class="center-search-container">
-          <div class="center-search-header">
-            <span class="center-search-title">Search Sessions</span>
-            <button class="center-search-close" id="centerSearchClose">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-            </button>
-          </div>
-          <div class="center-search-input-wrapper">
-            <svg class="center-search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <circle cx="7" cy="7" r="5"/>
-              <line x1="11" y1="11" x2="15" y2="15"/>
-            </svg>
-            <input type="text" class="center-search-input" id="centerSearchInput" placeholder="Search sessions by title...">
-          </div>
-          <div class="center-search-results" id="centerSearchResults">
-            <div class="center-search-empty">No sessions found</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chat-area" id="chatArea">
-        <div class="empty-state active" id="emptyState">
-          <svg class="empty-state-icon" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="6" y="6" width="16" height="16" rx="3.5" fill="var(--logo-fill)"/>
-            <rect x="2" y="2" width="16" height="16" rx="3.5" fill="var(--logo-dark)"/>
-            <rect x="6.5" y="6.5" width="5" height="5" rx="1.5" fill="var(--logo-accent)"/>
-          </svg>
-          <div class="empty-state-text">Easy<em>Ro</em></div>
-        </div>
-      </div>
-
-      <div class="prompt-area">
-        <div class="prompt-stack">
-          <!-- Question Modal (hidden by default) -->
-          <div class="question-modal hidden" id="questionModal">
-            <button class="qm-close" id="qmClose" title="Close">
-              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-            </button>
-            <div class="qm-top-bar" id="qmTopBar"></div>
-            <div class="qm-header"><div class="qm-title" id="qmTitle"></div></div>
-            <div class="qm-body" id="qmBody"></div>
-            <div class="qm-divider" id="qmDivider"></div>
-            <div class="qm-footer" id="qmFooter">
-              <div class="qm-input-row">
-                <span class="qm-edit-icon">
-                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V4a1 1 0 0 1 1-1z"/></svg>
-                </span>
-                <input class="qm-text-input" type="text" placeholder="Type your answer here.." id="qmTextInput" />
-              </div>
-            </div>
-          </div>
-
-          <!-- Normal prompt box -->
-          <div class="prompt-box">
-          <div class="prompt-top">
-            <input class="prompt-input" type="text" placeholder="Reply.." />
-          </div>
-          <button class="btn-send" title="Send">
-            <svg class="arrow-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M8 13V3"/>
-              <path d="M4 7l4-4 4 4"/>
-            </svg>
-            <svg class="stop-icon" viewBox="0 0 16 16" fill="currentColor">
-              <rect x="3" y="3" width="10" height="10" rx="1.5"/>
-            </svg>
-          </button>
-          <div class="prompt-bottom">
-            <div class="selector-wrapper">
-              <button class="selector-btn" id="modeSelector"><span>Build</span></button>
-              <div class="popup-menu" id="modePopup">
-                <div class="popup-item selected" data-value="build">Build</div>
-                <div class="popup-item" data-value="plan">Plan</div>
-              </div>
-            </div>
-            <div class="selector-wrapper">
-              <button class="selector-btn" id="modelSelector"><span>Loading...</span></button>
-              <div class="popup-menu" id="modelPopup"></div>
-              <div class="popup-menu variant-popup" id="variantPopup"></div>
-            </div>
-          </div>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <aside class="right-panel">
-      <div class="rp-session-name" id="rpSessionName">New Chat</div>
-      <div class="rp-context-label">Context</div>
-      <div class="rp-stats" id="rpStats">
-        <span>0 tokens</span>
-        <span>0% used</span>
-        <span>$0.00 spent</span>
-      </div>
-      <div class="rp-port-display" id="rpPortDisplay">
-        <span class="rp-port-label">Port:</span>
-        <span class="rp-port-value" id="rpPortValue">---</span>
-      </div>
-      <div class="rp-port-info" id="rpPortInfo">
-        <svg class="rp-info-icon" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/>
-          <circle cx="8" cy="5" r="1" fill="currentColor"/>
-          <line x1="8" y1="7.5" x2="8" y2="12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
+        />
+        <title>EasyRo</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Manrope:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="css/base.css" />
+        <link rel="stylesheet" href="css/chat.css" />
+        <link rel="stylesheet" href="css/right-panel.css" />
+        <link rel="stylesheet" href="css/modal.css" />
+        <link rel="stylesheet" href="css/settings.css" />
+        <link rel="stylesheet" href="css/prompt.css" />
+    </head>
+    <body>
+        <svg
+            class="bg-canvas bg-light"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 1440 900"
+        >
+            <defs>
+                <radialGradient id="b1" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(175,210,248,0.36)" />
+                    <stop offset="100%" stop-color="rgba(175,210,248,0)" />
+                </radialGradient>
+                <radialGradient id="b2" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(190,218,250,0.30)" />
+                    <stop offset="100%" stop-color="rgba(190,218,250,0)" />
+                </radialGradient>
+                <radialGradient id="b3" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(200,222,252,0.28)" />
+                    <stop offset="100%" stop-color="rgba(200,222,252,0)" />
+                </radialGradient>
+                <radialGradient id="b4" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(180,212,246,0.32)" />
+                    <stop offset="100%" stop-color="rgba(180,212,246,0)" />
+                </radialGradient>
+                <radialGradient id="b5" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(195,220,250,0.26)" />
+                    <stop offset="100%" stop-color="rgba(195,220,250,0)" />
+                </radialGradient>
+                <radialGradient id="b6" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(185,215,248,0.22)" />
+                    <stop offset="100%" stop-color="rgba(185,215,248,0)" />
+                </radialGradient>
+                <radialGradient id="b7" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="rgba(170,208,245,0.28)" />
+                    <stop offset="100%" stop-color="rgba(170,208,245,0)" />
+                </radialGradient>
+                <filter id="blur1"><feGaussianBlur stdDeviation="45" /></filter>
+            </defs>
+            <g filter="url(#blur1)">
+                <ellipse
+                    cx="120"
+                    cy="110"
+                    rx="310"
+                    ry="200"
+                    fill="url(#b1)"
+                    transform="rotate(-18 120 110)"
+                />
+                <ellipse
+                    cx="1280"
+                    cy="80"
+                    rx="260"
+                    ry="190"
+                    fill="url(#b2)"
+                    transform="rotate(12 1280 80)"
+                />
+                <ellipse
+                    cx="380"
+                    cy="480"
+                    rx="280"
+                    ry="210"
+                    fill="url(#b3)"
+                    transform="rotate(25 380 480)"
+                />
+                <ellipse
+                    cx="1050"
+                    cy="420"
+                    rx="300"
+                    ry="200"
+                    fill="url(#b4)"
+                    transform="rotate(-10 1050 420)"
+                />
+                <ellipse
+                    cx="200"
+                    cy="810"
+                    rx="290"
+                    ry="185"
+                    fill="url(#b5)"
+                    transform="rotate(8 200 810)"
+                />
+                <ellipse
+                    cx="1340"
+                    cy="780"
+                    rx="270"
+                    ry="195"
+                    fill="url(#b6)"
+                    transform="rotate(-20 1340 780)"
+                />
+                <ellipse
+                    cx="720"
+                    cy="460"
+                    rx="320"
+                    ry="230"
+                    fill="url(#b7)"
+                    transform="rotate(5 720 460)"
+                />
+            </g>
         </svg>
-        <span class="rp-info-text">Make sure to connect Rojo plugin with Rojo port above</span>
-      </div>
-      <div class="rp-todo-header" id="todoHeader"><span class="todo-arrow">▶</span> Todo</div>
-      <div class="rp-todo-list" id="todoList"></div>
-      <div class="rp-footer">
-        <span class="rp-footer-logo">Easy<em>Ro</em></span>
-        <span class="rp-footer-ver">v1.1.0</span>
-      </div>
-    </aside>
-  </div>
+        <svg
+            class="bg-canvas bg-dark"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 1440 900"
+        >
+            <defs>
+                <radialGradient id="bd1" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-1)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-1)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <radialGradient id="bd2" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-2)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-2)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <radialGradient id="bd3" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-3)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-3)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <radialGradient id="bd4" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-4)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-4)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <radialGradient id="bd5" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-5)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-5)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <radialGradient id="bd6" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-6)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-6)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <radialGradient id="bd7" cx="50%" cy="50%" r="50%">
+                    <stop offset="0%" stop-color="var(--gradient-7)" />
+                    <stop
+                        offset="100%"
+                        stop-color="var(--gradient-7)"
+                        stop-opacity="0"
+                    />
+                </radialGradient>
+                <filter id="blur1d">
+                    <feGaussianBlur stdDeviation="45" />
+                </filter>
+            </defs>
+            <g filter="url(#blur1d)">
+                <ellipse
+                    cx="120"
+                    cy="110"
+                    rx="310"
+                    ry="200"
+                    fill="url(#bd1)"
+                    transform="rotate(-18 120 110)"
+                />
+                <ellipse
+                    cx="1280"
+                    cy="80"
+                    rx="260"
+                    ry="190"
+                    fill="url(#bd2)"
+                    transform="rotate(12 1280 80)"
+                />
+                <ellipse
+                    cx="380"
+                    cy="480"
+                    rx="280"
+                    ry="210"
+                    fill="url(#bd3)"
+                    transform="rotate(25 380 480)"
+                />
+                <ellipse
+                    cx="1050"
+                    cy="420"
+                    rx="300"
+                    ry="200"
+                    fill="url(#bd4)"
+                    transform="rotate(-10 1050 420)"
+                />
+                <ellipse
+                    cx="200"
+                    cy="810"
+                    rx="290"
+                    ry="185"
+                    fill="url(#bd5)"
+                    transform="rotate(8 200 810)"
+                />
+                <ellipse
+                    cx="1340"
+                    cy="780"
+                    rx="270"
+                    ry="195"
+                    fill="url(#bd6)"
+                    transform="rotate(-20 1340 780)"
+                />
+                <ellipse
+                    cx="720"
+                    cy="460"
+                    rx="320"
+                    ry="230"
+                    fill="url(#bd7)"
+                    transform="rotate(5 720 460)"
+                />
+            </g>
+        </svg>
 
-  <script src="js/state.js"></script>
-  <script src="js/utils.js"></script>
-  <script src="js/chat/messages.js"></script>
-  <script src="js/chat/streaming.js"></script>
-  <script src="js/chat/indicators.js"></script>
-  <script src="js/chat.js"></script>
-  <script src="js/sessions.js"></script>
-  <script src="js/sse.js"></script>
-  <script src="js/modals/question.js"></script>
-  <script src="js/modals/revert.js"></script>
-  <script src="js/providers.js"></script>
-  <script src="js/right-panel.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/app.js"></script>
+        <div class="layout">
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">
+                        <svg
+                            class="logo-icon"
+                            viewBox="0 0 26 26"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <rect
+                                x="6"
+                                y="6"
+                                width="16"
+                                height="16"
+                                rx="3.5"
+                                fill="var(--logo-fill)"
+                            />
+                            <rect
+                                x="2"
+                                y="2"
+                                width="16"
+                                height="16"
+                                rx="3.5"
+                                fill="var(--logo-dark)"
+                            />
+                            <rect
+                                x="6.5"
+                                y="6.5"
+                                width="5"
+                                height="5"
+                                rx="1.5"
+                                fill="var(--logo-accent)"
+                            />
+                        </svg>
+                        <span class="sidebar-logo-text">Easy<em>Ro</em></span>
+                    </div>
+                    <div class="sidebar-btns">
+                        <button
+                            class="btn-new btn-sidebar-toggle"
+                            id="sidebarToggle"
+                            title="Toggle Sidebar"
+                        >
+                            <svg
+                                viewBox="0 0 14 14"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            >
+                                <line x1="2" y1="4" x2="12" y2="4" />
+                                <line x1="2" y1="7" x2="10" y2="7" />
+                                <line x1="2" y1="10" x2="12" y2="10" />
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-new btn-settings"
+                            id="settingsBtn"
+                            title="Settings"
+                        >
+                            <svg
+                                viewBox="0 0 14 14"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <circle cx="7" cy="7" r="3" />
+                                <path
+                                    d="M7 1v2M7 11v2M1 7h2M11 7h2M2.9 2.9l1.4 1.4M9.7 9.7l1.4 1.4M2.9 11.1l1.4-1.4M9.7 4.3l1.4-1.4"
+                                />
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-new btn-search"
+                            id="searchToggle"
+                            title="Search Sessions"
+                        >
+                            <svg
+                                viewBox="0 0 14 14"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            >
+                                <circle cx="6" cy="6" r="4" />
+                                <line x1="9" y1="9" x2="12.5" y2="12.5" />
+                            </svg>
+                        </button>
+                        <button
+                            class="btn-new"
+                            id="newChatBtn"
+                            title="New Chat"
+                        >
+                            <svg viewBox="0 0 14 14" fill="none">
+                                <line x1="7" y1="1" x2="7" y2="13" />
+                                <line x1="1" y1="7" x2="13" y2="7" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="search-bar" id="searchBar">
+                    <input type="text" id="searchInput" placeholder="Search" />
+                    <button class="search-close" id="searchClose">
+                        <svg viewBox="0 0 14 14">
+                            <line x1="3" y1="3" x2="11" y2="11" />
+                            <line x1="11" y1="3" x2="3" y2="11" />
+                        </svg>
+                    </button>
+                </div>
 
-  <!-- Revert Modal (hidden by default) -->
-  <div class="revert-modal-overlay hidden" id="revertModalOverlay">
-    <div class="revert-modal" id="revertModal">
-      <div class="rm-header">
-        <div class="rm-title">Revert to this point?</div>
-      </div>
-      <div class="rm-body">
-        <div class="rm-message-preview" id="rmMessagePreview"></div>
-        <div class="rm-warning">This will revert file changes</div>
-      </div>
-      <div class="rm-footer">
-        <button class="rm-btn-cancel" id="rmCancel">Cancel</button>
-        <button class="rm-btn-revert" id="rmRevert">Revert</button>
-      </div>
-    </div>
-  </div>
+                <div class="session-list" id="sessionList">
+                    <div
+                        class="session-section-label"
+                        id="attachedLabel"
+                        style="display: none"
+                    >
+                        Attached
+                    </div>
+                    <div id="attachedSessions"></div>
+                    <div class="session-section-label">Sessions</div>
+                    <div id="normalSessions"></div>
+                </div>
+                <div class="sidebar-bottom-space"></div>
+                <div class="sidebar-status" id="sidebarStatus">Starting...</div>
+            </aside>
 
-  <!-- Settings Page (hidden by default) -->
-  <div class="settings-page hidden" id="settingsPage">
-    <svg class="settings-bg-canvas sbg-light" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <radialGradient id="sb1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(175,210,248,0.6)"/><stop offset="100%" stop-color="rgba(175,210,248,0.1)"/></radialGradient>
-        <radialGradient id="sb2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(190,218,250,0.55)"/><stop offset="100%" stop-color="rgba(190,218,250,0.1)"/></radialGradient>
-        <radialGradient id="sb3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(200,222,252,0.5)"/><stop offset="100%" stop-color="rgba(200,222,252,0.1)"/></radialGradient>
-        <radialGradient id="sb4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(180,212,246,0.55)"/><stop offset="100%" stop-color="rgba(180,212,246,0.1)"/></radialGradient>
-        <radialGradient id="sb5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(195,220,250,0.5)"/><stop offset="100%" stop-color="rgba(195,220,250,0.1)"/></radialGradient>
-        <radialGradient id="sb6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(185,215,248,0.45)"/><stop offset="100%" stop-color="rgba(185,215,248,0.1)"/></radialGradient>
-        <radialGradient id="sb7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="rgba(170,208,245,0.5)"/><stop offset="100%" stop-color="rgba(170,208,245,0.1)"/></radialGradient>
-        <filter id="sblur1"><feGaussianBlur stdDeviation="45"/></filter>
-      </defs>
-      <rect width="100%" height="100%" fill="var(--bg-primary)"/>
-      <g filter="url(#sblur1)">
-        <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#sb1)" transform="rotate(-18 120 110)"/>
-        <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#sb2)" transform="rotate(12 1280 80)"/>
-        <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#sb3)" transform="rotate(25 380 480)"/>
-        <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#sb4)" transform="rotate(-10 1050 420)"/>
-        <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#sb5)" transform="rotate(8 200 810)"/>
-        <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#sb6)" transform="rotate(-20 1340 780)"/>
-        <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#sb7)" transform="rotate(5 720 460)"/>
-      </g>
-    </svg>
-    <svg class="settings-bg-canvas sbg-dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900">
-      <defs>
-        <radialGradient id="sbd1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-1)"/><stop offset="100%" stop-color="var(--gradient-1)" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbd2" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-2)"/><stop offset="100%" stop-color="var(--gradient-2)" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbd3" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-3)"/><stop offset="100%" stop-color="var(--gradient-3)" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbd4" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-4)"/><stop offset="100%" stop-color="var(--gradient-4)" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbd5" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-5)"/><stop offset="100%" stop-color="var(--gradient-5)" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbd6" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-6)"/><stop offset="100%" stop-color="var(--gradient-6)" stop-opacity="0"/></radialGradient>
-        <radialGradient id="sbd7" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="var(--gradient-7)"/><stop offset="100%" stop-color="var(--gradient-7)" stop-opacity="0"/></radialGradient>
-        <filter id="sblur1d"><feGaussianBlur stdDeviation="45"/></filter>
-      </defs>
-      <g filter="url(#sblur1d)">
-        <ellipse cx="120" cy="110" rx="310" ry="200" fill="url(#sbd1)" transform="rotate(-18 120 110)"/>
-        <ellipse cx="1280" cy="80" rx="260" ry="190" fill="url(#sbd2)" transform="rotate(12 1280 80)"/>
-        <ellipse cx="380" cy="480" rx="280" ry="210" fill="url(#sbd3)" transform="rotate(25 380 480)"/>
-        <ellipse cx="1050" cy="420" rx="300" ry="200" fill="url(#sbd4)" transform="rotate(-10 1050 420)"/>
-        <ellipse cx="200" cy="810" rx="290" ry="185" fill="url(#sbd5)" transform="rotate(8 200 810)"/>
-        <ellipse cx="1340" cy="780" rx="270" ry="195" fill="url(#sbd6)" transform="rotate(-20 1340 780)"/>
-        <ellipse cx="720" cy="460" rx="320" ry="230" fill="url(#sbd7)" transform="rotate(5 720 460)"/>
-      </g>
-    </svg>
-    <div class="settings-header">
-      <button class="settings-close" id="settingsClose" title="Close Settings">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8l4-4M6 8l4 4"/></svg>
-      </button>
-      <div class="settings-title"></div>
-    </div>
-    <div class="settings-content">
-      <div class="settings-left-panel">
-        <div class="settings-section">
-          <div class="settings-section-title" data-target="generalCard">General</div>
-          <div class="settings-card hidden" id="generalCard"></div>
+            <main class="main">
+                <!-- Center Search Modal (hidden by default) -->
+                <div class="center-search-modal hidden" id="centerSearchModal">
+                    <div
+                        class="center-search-backdrop"
+                        id="centerSearchBackdrop"
+                    ></div>
+                    <div class="center-search-container">
+                        <div class="center-search-header">
+                            <span class="center-search-title"
+                                >Search Sessions</span
+                            >
+                            <button
+                                class="center-search-close"
+                                id="centerSearchClose"
+                            >
+                                <svg
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M4 4l8 8M12 4l-8 8" />
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="center-search-input-wrapper">
+                            <svg
+                                class="center-search-icon"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                            >
+                                <circle cx="7" cy="7" r="5" />
+                                <line x1="11" y1="11" x2="15" y2="15" />
+                            </svg>
+                            <input
+                                type="text"
+                                class="center-search-input"
+                                id="centerSearchInput"
+                                placeholder="Search sessions by title..."
+                            />
+                        </div>
+                        <div
+                            class="center-search-results"
+                            id="centerSearchResults"
+                        >
+                            <div class="center-search-empty">
+                                No sessions found
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-area" id="chatArea">
+                    <div class="empty-state active" id="emptyState">
+                        <svg
+                            class="empty-state-icon"
+                            viewBox="0 0 26 26"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <rect
+                                x="6"
+                                y="6"
+                                width="16"
+                                height="16"
+                                rx="3.5"
+                                fill="var(--logo-fill)"
+                            />
+                            <rect
+                                x="2"
+                                y="2"
+                                width="16"
+                                height="16"
+                                rx="3.5"
+                                fill="var(--logo-dark)"
+                            />
+                            <rect
+                                x="6.5"
+                                y="6.5"
+                                width="5"
+                                height="5"
+                                rx="1.5"
+                                fill="var(--logo-accent)"
+                            />
+                        </svg>
+                        <div class="empty-state-text">Easy<em>Ro</em></div>
+                    </div>
+                </div>
+
+                <div class="prompt-area">
+                    <div class="prompt-stack">
+                        <!-- Question Modal (hidden by default) -->
+                        <div class="question-modal hidden" id="questionModal">
+                            <button class="qm-close" id="qmClose" title="Close">
+                                <svg
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M4 4l8 8M12 4l-8 8" />
+                                </svg>
+                            </button>
+                            <div class="qm-top-bar" id="qmTopBar"></div>
+                            <div class="qm-header">
+                                <div class="qm-title" id="qmTitle"></div>
+                            </div>
+                            <div class="qm-body" id="qmBody"></div>
+                            <div class="qm-divider" id="qmDivider"></div>
+                            <div class="qm-footer" id="qmFooter">
+                                <div class="qm-input-row">
+                                    <span class="qm-edit-icon">
+                                        <svg
+                                            viewBox="0 0 16 16"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="1.4"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        >
+                                            <path
+                                                d="M2 3h12a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H5l-3 3V4a1 1 0 0 1 1-1z"
+                                            />
+                                        </svg>
+                                    </span>
+                                    <input
+                                        class="qm-text-input"
+                                        type="text"
+                                        placeholder="Type your answer here.."
+                                        id="qmTextInput"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Normal prompt box -->
+                        <div class="prompt-box">
+                            <div class="prompt-top">
+                                <input
+                                    class="prompt-input"
+                                    type="text"
+                                    placeholder="Reply.."
+                                />
+                            </div>
+                            <button class="btn-send" title="Send">
+                                <svg
+                                    class="arrow-icon"
+                                    viewBox="0 0 16 16"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path d="M8 13V3" />
+                                    <path d="M4 7l4-4 4 4" />
+                                </svg>
+                                <svg
+                                    class="stop-icon"
+                                    viewBox="0 0 16 16"
+                                    fill="currentColor"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="3"
+                                        width="10"
+                                        height="10"
+                                        rx="1.5"
+                                    />
+                                </svg>
+                            </button>
+                            <div class="prompt-bottom">
+                                <div class="selector-wrapper">
+                                    <button
+                                        class="selector-btn"
+                                        id="modeSelector"
+                                    >
+                                        <span>Build</span>
+                                    </button>
+                                    <div class="popup-menu" id="modePopup">
+                                        <div
+                                            class="popup-item selected"
+                                            data-value="build"
+                                        >
+                                            Build
+                                        </div>
+                                        <div
+                                            class="popup-item"
+                                            data-value="plan"
+                                        >
+                                            Plan
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="selector-wrapper">
+                                    <button
+                                        class="selector-btn"
+                                        id="modelSelector"
+                                    >
+                                        <span>Loading...</span>
+                                    </button>
+                                    <div
+                                        class="popup-menu"
+                                        id="modelPopup"
+                                    ></div>
+                                    <div
+                                        class="popup-menu variant-popup"
+                                        id="variantPopup"
+                                    ></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <aside class="right-panel">
+                <div class="rp-session-name" id="rpSessionName">New Chat</div>
+                <div class="rp-context-label">Context</div>
+                <div class="rp-stats" id="rpStats">
+                    <span>0 tokens</span>
+                    <span>0% used</span>
+                    <span>$0.00 spent</span>
+                </div>
+                <div class="rp-port-display" id="rpPortDisplay">
+                    <span class="rp-port-label">Port:</span>
+                    <span class="rp-port-value" id="rpPortValue">---</span>
+                </div>
+                <div class="rp-port-info" id="rpPortInfo">
+                    <svg
+                        class="rp-info-icon"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                    >
+                        <circle
+                            cx="8"
+                            cy="8"
+                            r="7"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                        />
+                        <circle cx="8" cy="5" r="1" fill="currentColor" />
+                        <line
+                            x1="8"
+                            y1="7.5"
+                            x2="8"
+                            y2="12"
+                            stroke="currentColor"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                    <span class="rp-info-text"
+                        >Make sure to connect Rojo plugin with Rojo port
+                        above</span
+                    >
+                </div>
+                <div class="rp-todo-header" id="todoHeader">
+                    <span class="todo-arrow">▶</span> Todo
+                </div>
+                <div class="rp-todo-list" id="todoList"></div>
+                <div class="rp-footer">
+                    <span class="rp-footer-logo">Easy<em>Ro</em></span>
+                    <span class="rp-footer-ver">v1.1.1</span>
+                </div>
+            </aside>
         </div>
-        <div class="settings-section">
-          <div class="settings-section-title" data-target="aboutCard">About</div>
-          <div class="settings-card hidden" id="aboutCard"></div>
+
+        <script src="js/state.js"></script>
+        <script src="js/utils.js"></script>
+        <script src="js/chat/messages.js"></script>
+        <script src="js/chat/streaming.js"></script>
+        <script src="js/chat/indicators.js"></script>
+        <script src="js/chat.js"></script>
+        <script src="js/sessions.js"></script>
+        <script src="js/sse.js"></script>
+        <script src="js/modals/question.js"></script>
+        <script src="js/modals/revert.js"></script>
+        <script src="js/providers.js"></script>
+        <script src="js/right-panel.js"></script>
+        <script src="js/settings.js"></script>
+        <script src="js/app.js"></script>
+
+        <!-- Revert Modal (hidden by default) -->
+        <div class="revert-modal-overlay hidden" id="revertModalOverlay">
+            <div class="revert-modal" id="revertModal">
+                <div class="rm-header">
+                    <div class="rm-title">Revert to this point?</div>
+                </div>
+                <div class="rm-body">
+                    <div class="rm-message-preview" id="rmMessagePreview"></div>
+                    <div class="rm-warning">This will revert file changes</div>
+                </div>
+                <div class="rm-footer">
+                    <button class="rm-btn-cancel" id="rmCancel">Cancel</button>
+                    <button class="rm-btn-revert" id="rmRevert">Revert</button>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="settings-right-panel">
-        <div class="settings-right-content hidden" id="generalContent">
-          <div class="settings-subsection-title">Theme</div>
-          <div class="theme-buttons">
-            <button class="theme-btn" id="lightThemeBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/>
-                <line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/>
-                <line x1="21" y1="12" x2="23" y2="12"/>
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
-              </svg>
-              <span>Light</span>
-            </button>
-            <button class="theme-btn" id="darkThemeBtn">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-              </svg>
-              <span>Dark</span>
-            </button>
-          </div>
-        </div>
-        <div class="settings-right-content hidden" id="aboutContent">
-          <div class="about-description">Start building with EasyRo — a free AI coding agent for Roblox. Work with AI to build your games. Changes sync to Roblox Studio in real time.</div>
-          <button class="feedback-btn" id="feedbackBtn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+
+        <!-- Settings Page (hidden by default) -->
+        <div class="settings-page hidden" id="settingsPage">
+            <svg
+                class="settings-bg-canvas sbg-light"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 1440 900"
+                preserveAspectRatio="xMidYMid slice"
+            >
+                <defs>
+                    <radialGradient id="sb1" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(175,210,248,0.6)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(175,210,248,0.1)"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sb2" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(190,218,250,0.55)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(190,218,250,0.1)"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sb3" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(200,222,252,0.5)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(200,222,252,0.1)"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sb4" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(180,212,246,0.55)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(180,212,246,0.1)"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sb5" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(195,220,250,0.5)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(195,220,250,0.1)"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sb6" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(185,215,248,0.45)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(185,215,248,0.1)"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sb7" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="rgba(170,208,245,0.5)" />
+                        <stop
+                            offset="100%"
+                            stop-color="rgba(170,208,245,0.1)"
+                        />
+                    </radialGradient>
+                    <filter id="sblur1">
+                        <feGaussianBlur stdDeviation="45" />
+                    </filter>
+                </defs>
+                <rect width="100%" height="100%" fill="var(--bg-primary)" />
+                <g filter="url(#sblur1)">
+                    <ellipse
+                        cx="120"
+                        cy="110"
+                        rx="310"
+                        ry="200"
+                        fill="url(#sb1)"
+                        transform="rotate(-18 120 110)"
+                    />
+                    <ellipse
+                        cx="1280"
+                        cy="80"
+                        rx="260"
+                        ry="190"
+                        fill="url(#sb2)"
+                        transform="rotate(12 1280 80)"
+                    />
+                    <ellipse
+                        cx="380"
+                        cy="480"
+                        rx="280"
+                        ry="210"
+                        fill="url(#sb3)"
+                        transform="rotate(25 380 480)"
+                    />
+                    <ellipse
+                        cx="1050"
+                        cy="420"
+                        rx="300"
+                        ry="200"
+                        fill="url(#sb4)"
+                        transform="rotate(-10 1050 420)"
+                    />
+                    <ellipse
+                        cx="200"
+                        cy="810"
+                        rx="290"
+                        ry="185"
+                        fill="url(#sb5)"
+                        transform="rotate(8 200 810)"
+                    />
+                    <ellipse
+                        cx="1340"
+                        cy="780"
+                        rx="270"
+                        ry="195"
+                        fill="url(#sb6)"
+                        transform="rotate(-20 1340 780)"
+                    />
+                    <ellipse
+                        cx="720"
+                        cy="460"
+                        rx="320"
+                        ry="230"
+                        fill="url(#sb7)"
+                        transform="rotate(5 720 460)"
+                    />
+                </g>
             </svg>
-            <span>Feedback</span>
-          </button>
+            <svg
+                class="settings-bg-canvas sbg-dark"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 1440 900"
+            >
+                <defs>
+                    <radialGradient id="sbd1" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-1)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-1)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sbd2" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-2)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-2)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sbd3" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-3)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-3)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sbd4" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-4)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-4)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sbd5" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-5)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-5)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sbd6" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-6)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-6)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <radialGradient id="sbd7" cx="50%" cy="50%" r="50%">
+                        <stop offset="0%" stop-color="var(--gradient-7)" />
+                        <stop
+                            offset="100%"
+                            stop-color="var(--gradient-7)"
+                            stop-opacity="0"
+                        />
+                    </radialGradient>
+                    <filter id="sblur1d">
+                        <feGaussianBlur stdDeviation="45" />
+                    </filter>
+                </defs>
+                <g filter="url(#sblur1d)">
+                    <ellipse
+                        cx="120"
+                        cy="110"
+                        rx="310"
+                        ry="200"
+                        fill="url(#sbd1)"
+                        transform="rotate(-18 120 110)"
+                    />
+                    <ellipse
+                        cx="1280"
+                        cy="80"
+                        rx="260"
+                        ry="190"
+                        fill="url(#sbd2)"
+                        transform="rotate(12 1280 80)"
+                    />
+                    <ellipse
+                        cx="380"
+                        cy="480"
+                        rx="280"
+                        ry="210"
+                        fill="url(#sbd3)"
+                        transform="rotate(25 380 480)"
+                    />
+                    <ellipse
+                        cx="1050"
+                        cy="420"
+                        rx="300"
+                        ry="200"
+                        fill="url(#sbd4)"
+                        transform="rotate(-10 1050 420)"
+                    />
+                    <ellipse
+                        cx="200"
+                        cy="810"
+                        rx="290"
+                        ry="185"
+                        fill="url(#sbd5)"
+                        transform="rotate(8 200 810)"
+                    />
+                    <ellipse
+                        cx="1340"
+                        cy="780"
+                        rx="270"
+                        ry="195"
+                        fill="url(#sbd6)"
+                        transform="rotate(-20 1340 780)"
+                    />
+                    <ellipse
+                        cx="720"
+                        cy="460"
+                        rx="320"
+                        ry="230"
+                        fill="url(#sbd7)"
+                        transform="rotate(5 720 460)"
+                    />
+                </g>
+            </svg>
+            <div class="settings-header">
+                <button
+                    class="settings-close"
+                    id="settingsClose"
+                    title="Close Settings"
+                >
+                    <svg
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M6 8l4-4M6 8l4 4" />
+                    </svg>
+                </button>
+                <div class="settings-title"></div>
+            </div>
+            <div class="settings-content">
+                <div class="settings-left-panel">
+                    <div class="settings-section">
+                        <div
+                            class="settings-section-title"
+                            data-target="generalCard"
+                        >
+                            General
+                        </div>
+                        <div
+                            class="settings-card hidden"
+                            id="generalCard"
+                        ></div>
+                    </div>
+                    <div class="settings-section">
+                        <div
+                            class="settings-section-title"
+                            data-target="aboutCard"
+                        >
+                            About
+                        </div>
+                        <div class="settings-card hidden" id="aboutCard"></div>
+                    </div>
+                </div>
+                <div class="settings-right-panel">
+                    <div
+                        class="settings-right-content hidden"
+                        id="generalContent"
+                    >
+                        <div class="settings-subsection-title">Theme</div>
+                        <div class="theme-buttons">
+                            <button class="theme-btn" id="lightThemeBtn">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <circle cx="12" cy="12" r="5" />
+                                    <line x1="12" y1="1" x2="12" y2="3" />
+                                    <line x1="12" y1="21" x2="12" y2="23" />
+                                    <line
+                                        x1="4.22"
+                                        y1="4.22"
+                                        x2="5.64"
+                                        y2="5.64"
+                                    />
+                                    <line
+                                        x1="18.36"
+                                        y1="18.36"
+                                        x2="19.78"
+                                        y2="19.78"
+                                    />
+                                    <line x1="1" y1="12" x2="3" y2="12" />
+                                    <line x1="21" y1="12" x2="23" y2="12" />
+                                    <line
+                                        x1="4.22"
+                                        y1="19.78"
+                                        x2="5.64"
+                                        y2="18.36"
+                                    />
+                                    <line
+                                        x1="18.36"
+                                        y1="5.64"
+                                        x2="19.78"
+                                        y2="4.22"
+                                    />
+                                </svg>
+                                <span>Light</span>
+                            </button>
+                            <button class="theme-btn" id="darkThemeBtn">
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                >
+                                    <path
+                                        d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"
+                                    />
+                                </svg>
+                                <span>Dark</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="settings-right-content hidden"
+                        id="aboutContent"
+                    >
+                        <div class="about-description">
+                            Start building with EasyRo — a free AI coding agent
+                            for Roblox. Work with AI to build your games.
+                            Changes sync to Roblox Studio in real time.
+                        </div>
+                        <button class="feedback-btn" id="feedbackBtn">
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path
+                                    d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                />
+                            </svg>
+                            <span>Feedback</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
-</body>
+    </body>
 </html>
