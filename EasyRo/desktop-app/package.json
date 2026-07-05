@@ -1,6 +1,6 @@
 {
   "name": "easyro-desktop",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "EasyRo - Roblox Studio AI Assistant",
   "main": "src/main/main.js",
   "author": "EasyRo",
@@ -48,18 +48,25 @@
       {
         "from": "../src",
         "to": "project/src",
-        "filter": ["**/*", "**/.*"]
+        "filter": [
+          "**/*",
+          "**/.*"
+        ]
       }
     ],
     "win": {
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "portable",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "../../assets/logo.ico",
@@ -69,7 +76,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ]
     },
@@ -77,11 +87,15 @@
       "target": [
         {
           "target": "AppImage",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         },
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "../../assets/logo.ico",
@@ -94,7 +108,9 @@
       "createStartMenuShortcut": true,
       "shortcutName": "EasyRo",
       "deleteAppDataOnUninstall": true,
-      "installerLanguages": ["en_US"],
+      "installerLanguages": [
+        "en_US"
+      ],
       "multiLanguageInstaller": false,
       "include": "installer-custom.nsh",
       "artifactName": "${productName} Setup.${ext}"

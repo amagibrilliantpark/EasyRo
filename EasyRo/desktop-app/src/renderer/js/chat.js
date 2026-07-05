@@ -1,6 +1,23 @@
+/** Return the currently selected variant key only if the given model actually supports it. */
+function getVariantForModel(model) {
+  if (!model || !window.App.providers) return undefined;
+  const allProviders = window.App.providers.all || [];
+  const provider = allProviders.find((p) => p.id === model.provider);
+  if (!provider || !provider.models) return undefined;
+  const modelData =
+    provider.models[model.model] ||
+    Object.values(provider.models).find((m) => m.id === model.model);
+  if (!modelData || !modelData.variants) return undefined;
+  const keys = Object.keys(modelData.variants);
+  if (!keys.length) return undefined;
+  return keys.includes(window.App.currentVariant)
+    ? window.App.currentVariant
+    : keys[0];
+}
+
 /** Send the prompt input text to the AI. Aborts any in-progress generation first. */
 async function sendMessage() {
-  const input = document.querySelector('.prompt-input');
+  const input = document.querySelector(".prompt-input");
   const text = input.value.trim();
   if (!text) return;
 
@@ -11,8 +28,10 @@ async function sendMessage() {
     try {
       console.log(`[Perf] ⏱ Aborting previous session...`);
       await window.electronAPI.session.abort(window.App.currentSession);
-      await new Promise(r => setTimeout(r, 300));
-      console.log(`[Perf] ⏱ Abort done in ${(performance.now() - sendStartTime).toFixed(0)}ms`);
+      await new Promise((r) => setTimeout(r, 300));
+      console.log(
+        `[Perf] ⏱ Abort done in ${(performance.now() - sendStartTime).toFixed(0)}ms`,
+      );
     } catch (e) {
       // already idle
     }
@@ -22,36 +41,49 @@ async function sendMessage() {
   Chat.Streaming.resetAccum();
   Chat.Indicators.hideAllStatusIndicators();
 
-  Chat.Messages.appendMessage('user', text);
-  input.value = '';
+  Chat.Messages.appendMessage("user", text);
+  input.value = "";
   setStopMode(true);
 
   try {
     const sessionStart = performance.now();
     const sessionId = await window.Sessions.ensureSession();
-    console.log(`[Perf] ⏱ ensureSession done in ${(performance.now() - sessionStart).toFixed(0)}ms, session: ${sessionId}`);
+    console.log(
+      `[Perf] ⏱ ensureSession done in ${(performance.now() - sessionStart).toFixed(0)}ms, session: ${sessionId}`,
+    );
 
     const model = window.App.currentModel;
     const agent = window.App.currentAgent;
-    const variant = window.App.currentVariant;
-    const modelWithVariant = model ? { ...model, variant } : null;
+    const modelWithVariant = model
+      ? { ...model, variant: getVariantForModel(model) }
+      : null;
 
     const sendAsyncStart = performance.now();
-    console.log(`[Perf] ⏱ sendAsync START, model: ${model?.id || 'none'}, agent: ${agent || 'build'}`);
+    console.log(
+      `[Perf] ⏱ sendAsync START, model: ${model?.id || "none"}, agent: ${agent || "build"}`,
+    );
     await window.electronAPI.message.sendAsync(
       sessionId,
       text,
       modelWithVariant,
-      agent || 'build'
+      agent || "build",
     );
-    console.log(`[Perf] ⏱ sendAsync DONE in ${(performance.now() - sendAsyncStart).toFixed(0)}ms`);
-    console.log(`[Perf] ⏱ Total sendMessage ${(performance.now() - sendStartTime).toFixed(0)}ms`);
+    console.log(
+      `[Perf] ⏱ sendAsync DONE in ${(performance.now() - sendAsyncStart).toFixed(0)}ms`,
+    );
+    console.log(
+      `[Perf] ⏱ Total sendMessage ${(performance.now() - sendStartTime).toFixed(0)}ms`,
+    );
 
-    if (typeof window.SSE !== 'undefined') window.SSE.lastSendMessageTime = Date.now();
+    if (typeof window.SSE !== "undefined")
+      window.SSE.lastSendMessageTime = Date.now();
   } catch (error) {
     Chat.Indicators.hideAllStatusIndicators();
-    Chat.Messages.appendMessage('assistant', 'Error: ' + error.message);
-    console.error(`[Perf] ❌ sendMessage FAILED after ${(performance.now() - sendStartTime).toFixed(0)}ms:`, error.message);
+    Chat.Messages.appendMessage("assistant", "Error: " + error.message);
+    console.error(
+      `[Perf] ❌ sendMessage FAILED after ${(performance.now() - sendStartTime).toFixed(0)}ms:`,
+      error.message,
+    );
     setStopMode(false);
   }
 }
@@ -71,9 +103,9 @@ async function stopGeneration() {
 /** Toggle the send button between send/stop modes and disable input while processing. */
 function setStopMode(active) {
   window.App.isProcessing = active;
-  const btn = document.querySelector('.btn-send');
-  const input = document.querySelector('.prompt-input');
-  btn.classList.toggle('stop-mode', active);
+  const btn = document.querySelector(".btn-send");
+  const input = document.querySelector(".prompt-input");
+  btn.classList.toggle("stop-mode", active);
   input.disabled = active;
   if (!active) setTimeout(() => input.focus(), 50);
 }

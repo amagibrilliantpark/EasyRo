@@ -4,65 +4,82 @@ async function loadSessions() {
   console.log(`[Session] loadSessions START`);
   try {
     const response = await window.electronAPI.session.list();
-    const allSessions = response.value || response || [];
+    const rawSessions = response.value || response || [];
+    // "attached" (pinned) is an EasyRo-only concept; the backend has no such field,
+    // so we persist it inside the session's free-form `metadata` object instead.
+    const allSessions = rawSessions.map((s) => ({
+      ...s,
+      attached: !!(s.metadata && s.metadata.attached),
+    }));
     window.App.sessions = allSessions;
     window.App.sessionsCacheTime = Date.now();
     renderSessionList();
-    console.log(`[Session] loadSessions DONE in ${(performance.now() - t0).toFixed(0)}ms, count: ${allSessions.length}`);
+    console.log(
+      `[Session] loadSessions DONE in ${(performance.now() - t0).toFixed(0)}ms, count: ${allSessions.length}`,
+    );
   } catch (error) {
-    console.error(`[Session] loadSessions FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error.message);
-    if(window.App.debug)console.error('Failed to load sessions:', error);
+    console.error(
+      `[Session] loadSessions FAILED in ${(performance.now() - t0).toFixed(0)}ms:`,
+      error.message,
+    );
+    if (window.App.debug) console.error("Failed to load sessions:", error);
   }
 }
 
 /** Get sessions from cache if recent, otherwise fetch from backend. */
 async function getSessions(useCache = true) {
   const CACHE_TTL = 5000; // 5 seconds
-  
-  if (useCache && window.App.sessionsCacheTime && 
-      (Date.now() - window.App.sessionsCacheTime) < CACHE_TTL) {
+
+  if (
+    useCache &&
+    window.App.sessionsCacheTime &&
+    Date.now() - window.App.sessionsCacheTime < CACHE_TTL
+  ) {
     return window.App.sessions || [];
   }
-  
+
   await loadSessions();
   return window.App.sessions || [];
 }
 
 /** Split sessions into attached/normal groups and render both lists. */
 function renderSessionList() {
-  const attachedContainer = document.getElementById('attachedSessions');
-  const normalContainer = document.getElementById('normalSessions');
-  const attachedLabel = document.getElementById('attachedLabel');
+  const attachedContainer = document.getElementById("attachedSessions");
+  const normalContainer = document.getElementById("normalSessions");
+  const attachedLabel = document.getElementById("attachedLabel");
 
-  attachedContainer.innerHTML = '';
-  normalContainer.innerHTML = '';
+  attachedContainer.innerHTML = "";
+  normalContainer.innerHTML = "";
 
-  const attached = window.App.sessions.filter(s => s.attached);
-  const normal = window.App.sessions.filter(s => !s.attached);
+  const attached = window.App.sessions.filter((s) => s.attached);
+  const normal = window.App.sessions.filter((s) => !s.attached);
 
-  attachedLabel.style.display = attached.length > 0 ? 'block' : 'none';
+  attachedLabel.style.display = attached.length > 0 ? "block" : "none";
 
-  attached.forEach(s => attachedContainer.appendChild(createSessionCard(s)));
-  normal.forEach(s => normalContainer.appendChild(createSessionCard(s)));
+  attached.forEach((s) => attachedContainer.appendChild(createSessionCard(s)));
+  normal.forEach((s) => normalContainer.appendChild(createSessionCard(s)));
 }
 
 /** Build a session card element with title, context menu, and click handler. */
 function createSessionCard(session) {
-  const card = document.createElement('div');
-  card.className = 'session-card' + (session.id === window.App.currentSession ? ' active' : '');
+  const card = document.createElement("div");
+  card.className =
+    "session-card" +
+    (session.id === window.App.currentSession ? " active" : "");
   card.dataset.id = session.id;
-  card.dataset.name = session.title || 'New Chat';
+  card.dataset.name = session.title || "New Chat";
 
-  const title = document.createElement('div');
-  title.className = 'sc-title';
-  title.textContent = session.title || 'New Chat';
+  const title = document.createElement("div");
+  title.className = "sc-title";
+  title.textContent = session.title || "New Chat";
 
-  const moreBtn = document.createElement('button');
-  moreBtn.className = 'session-more';
-  moreBtn.innerHTML = '<svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg>';
+  const moreBtn = document.createElement("button");
+  moreBtn.className = "session-more";
+  moreBtn.innerHTML =
+    '<svg viewBox="0 0 14 14"><circle cx="7" cy="3" r="1.2"/><circle cx="7" cy="7" r="1.2"/><circle cx="7" cy="11" r="1.2"/></svg>';
 
-  const menu = document.createElement('div');
-  menu.className = 'session-menu';
+  const menu = document.createElement("div");
+  menu.className = "session-menu";
   menu.innerHTML = `
     <button class="session-menu-item" data-action="rename"><svg viewBox="0 0 14 14"><path d="M10 2l2 2-7 7H3v-2l7-7z"/></svg>Rename</button>
     <button class="session-menu-item" data-action="attach"><svg viewBox="0 0 14 14"><path d="M1 7h5M3.5 4.5v5"/><rect x="7" y="2" width="6" height="10" rx="1.5"/></svg>Attach</button>
@@ -73,32 +90,39 @@ function createSessionCard(session) {
   card.appendChild(moreBtn);
   card.appendChild(menu);
 
-  card.addEventListener('click', function(e) {
-    if (e.target.closest('.session-more') || e.target.closest('.session-menu')) return;
+  card.addEventListener("click", function (e) {
+    if (e.target.closest(".session-more") || e.target.closest(".session-menu"))
+      return;
     selectSession(session.id);
   });
 
-  moreBtn.addEventListener('click', function(e) {
+  moreBtn.addEventListener("click", function (e) {
     e.stopPropagation();
-    const wasOpen = menu.classList.contains('active');
-    document.querySelectorAll('.session-menu').forEach(m => m.classList.remove('active'));
-    if (!wasOpen) menu.classList.add('active');
+    const wasOpen = menu.classList.contains("active");
+    document
+      .querySelectorAll(".session-menu")
+      .forEach((m) => m.classList.remove("active"));
+    if (!wasOpen) menu.classList.add("active");
   });
 
-  menu.querySelectorAll('.session-menu-item').forEach(item => {
-    item.addEventListener('click', function(e) {
+  menu.querySelectorAll(".session-menu-item").forEach((item) => {
+    item.addEventListener("click", function (e) {
       e.stopPropagation();
       const action = this.dataset.action;
-      if (action === 'delete') {
+      if (action === "delete") {
         deleteSession(session.id);
-      } else if (action === 'rename') {
-        document.querySelectorAll('.session-menu').forEach(m => m.classList.remove('active'));
+      } else if (action === "rename") {
+        document
+          .querySelectorAll(".session-menu")
+          .forEach((m) => m.classList.remove("active"));
         startRename(card, title, session);
-      } else if (action === 'attach') {
+      } else if (action === "attach") {
         toggleAttach(session.id);
       }
-      if (action !== 'rename') {
-        document.querySelectorAll('.session-menu').forEach(m => m.classList.remove('active'));
+      if (action !== "rename") {
+        document
+          .querySelectorAll(".session-menu")
+          .forEach((m) => m.classList.remove("active"));
       }
     });
   });
@@ -116,22 +140,28 @@ async function selectSession(sessionId) {
   try {
     // 0. Abort in-progress generation
     if (window.App.isProcessing && window.App.currentSession) {
-      console.log(`[Session] Aborting previous session: ${window.App.currentSession}`);
+      console.log(
+        `[Session] Aborting previous session: ${window.App.currentSession}`,
+      );
       try {
         await window.electronAPI.session.abort(window.App.currentSession);
-        await new Promise(r => setTimeout(r, 300));
+        await new Promise((r) => setTimeout(r, 300));
       } catch (e) {}
       window.App.isProcessing = false;
     }
 
     // 1. Save current session's files
     if (window.App.currentSession && window.App.currentSession !== sessionId) {
-      console.log(`[Session] Saving current session: ${window.App.currentSession}`);
+      console.log(
+        `[Session] Saving current session: ${window.App.currentSession}`,
+      );
       const saveStart = performance.now();
       const saveResult = await window.electronAPI.session.saveCurrent();
-      console.log(`[Session] Save done in ${(performance.now() - saveStart).toFixed(0)}ms`);
+      console.log(
+        `[Session] Save done in ${(performance.now() - saveStart).toFixed(0)}ms`,
+      );
       if (!saveResult.success) {
-        console.error('[Session] Failed to save session:', saveResult.error);
+        console.error("[Session] Failed to save session:", saveResult.error);
         return;
       }
     }
@@ -140,9 +170,14 @@ async function selectSession(sessionId) {
     console.log(`[Session] Restoring session: ${sessionId}`);
     const restoreStart = performance.now();
     const restoreResult = await window.electronAPI.session.restore(sessionId);
-    console.log(`[Session] Restore done in ${(performance.now() - restoreStart).toFixed(0)}ms`);
+    console.log(
+      `[Session] Restore done in ${(performance.now() - restoreStart).toFixed(0)}ms`,
+    );
     if (!restoreResult.success) {
-      console.error('[Session] Failed to restore session:', restoreResult.error);
+      console.error(
+        "[Session] Failed to restore session:",
+        restoreResult.error,
+      );
       return;
     }
 
@@ -151,13 +186,13 @@ async function selectSession(sessionId) {
     window.Chat.hideAllStatusIndicators();
     window.App.currentSession = sessionId;
 
-    document.querySelectorAll('.session-card').forEach(c => {
-      c.classList.toggle('active', c.dataset.id === sessionId);
+    document.querySelectorAll(".session-card").forEach((c) => {
+      c.classList.toggle("active", c.dataset.id === sessionId);
     });
 
-    const session = window.App.sessions.find(s => s.id === sessionId);
+    const session = window.App.sessions.find((s) => s.id === sessionId);
     if (session) {
-      window.RightPanel.updateSessionName(session.title || 'Untitled');
+      window.RightPanel.updateSessionName(session.title || "Untitled");
       window.RightPanel.updateContextStats(null);
     }
 
@@ -169,7 +204,9 @@ async function selectSession(sessionId) {
       if (window.App.currentSession !== sessionId) return;
       const todos = todoResponse.value || todoResponse || [];
       window.RightPanel.updateTodoList(todos);
-      console.log(`[Session] Todos loaded in ${(performance.now() - todoStart).toFixed(0)}ms, count: ${todos.length}`);
+      console.log(
+        `[Session] Todos loaded in ${(performance.now() - todoStart).toFixed(0)}ms, count: ${todos.length}`,
+      );
     } catch (error) {
       console.warn(`[Session] Todo load failed:`, error.message);
       if (window.App.currentSession === sessionId) {
@@ -183,7 +220,9 @@ async function selectSession(sessionId) {
       const messages = await window.electronAPI.session.messages(sessionId);
       if (window.App.currentSession !== sessionId) return;
       const msgList = messages.value || messages;
-      console.log(`[Session] Messages loaded in ${(performance.now() - msgStart).toFixed(0)}ms, count: ${msgList.length}`);
+      console.log(
+        `[Session] Messages loaded in ${(performance.now() - msgStart).toFixed(0)}ms, count: ${msgList.length}`,
+      );
       window.Chat.renderMessages(messages);
 
       // Aggregate tokens from assistant messages
@@ -195,7 +234,9 @@ async function selectSession(sessionId) {
       console.warn(`[Session] Messages load failed:`, error.message);
     }
 
-    console.log(`[Session] selectSession DONE in ${(performance.now() - t0).toFixed(0)}ms`);
+    console.log(
+      `[Session] selectSession DONE in ${(performance.now() - t0).toFixed(0)}ms`,
+    );
   } finally {
     _switchingSession = false;
   }
@@ -213,25 +254,35 @@ async function deleteSession(sessionId) {
     }
 
     await window.electronAPI.session.delete(sessionId);
-    try { await window.electronAPI.session.deleteSnapshot(sessionId); } catch (e) {}
+    try {
+      await window.electronAPI.session.deleteSnapshot(sessionId);
+    } catch (e) {}
 
-    window.App.sessions = window.App.sessions.filter(s => s.id !== sessionId);
+    window.App.sessions = window.App.sessions.filter((s) => s.id !== sessionId);
     renderSessionList();
 
     if (window.App.currentSession === sessionId) {
       window.App.currentSession = null;
       window.Chat.resetStreamingAccum();
       window.Chat.hideAllStatusIndicators();
-      document.getElementById('emptyState').classList.add('active');
-      document.getElementById('chatArea').querySelectorAll('.message, .streaming-cursor').forEach(m => m.remove());
-      window.RightPanel.updateSessionName('New Chat');
+      document.getElementById("emptyState").classList.add("active");
+      document
+        .getElementById("chatArea")
+        .querySelectorAll(".message, .streaming-cursor")
+        .forEach((m) => m.remove());
+      window.RightPanel.updateSessionName("New Chat");
       window.RightPanel.clearTodoList();
       window.RightPanel.updateContextStats(null);
     }
-    console.log(`[Session] deleteSession DONE in ${(performance.now() - t0).toFixed(0)}ms`);
+    console.log(
+      `[Session] deleteSession DONE in ${(performance.now() - t0).toFixed(0)}ms`,
+    );
   } catch (error) {
-    console.error(`[Session] deleteSession FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error.message);
-    if(window.App.debug)console.error('Failed to delete session:', error);
+    console.error(
+      `[Session] deleteSession FAILED in ${(performance.now() - t0).toFixed(0)}ms:`,
+      error.message,
+    );
+    if (window.App.debug) console.error("Failed to delete session:", error);
   }
 }
 
@@ -241,7 +292,7 @@ async function renameSession(sessionId, title) {
   console.log(`[Session] renameSession: ${sessionId} → "${title}"`);
   try {
     await window.electronAPI.session.update(sessionId, { title });
-    const session = window.App.sessions.find(s => s.id === sessionId);
+    const session = window.App.sessions.find((s) => s.id === sessionId);
     if (session) {
       session.title = title;
       if (sessionId === window.App.currentSession) {
@@ -249,28 +300,30 @@ async function renameSession(sessionId, title) {
       }
     }
     renderSessionList();
-    console.log(`[Session] renameSession DONE in ${(performance.now() - t0).toFixed(0)}ms`);
+    console.log(
+      `[Session] renameSession DONE in ${(performance.now() - t0).toFixed(0)}ms`,
+    );
   } catch (error) {
     console.error(`[Session] renameSession FAILED:`, error.message);
-    if(window.App.debug)console.error('Failed to rename session:', error);
+    if (window.App.debug) console.error("Failed to rename session:", error);
   }
 }
 
 /** Replace the title element with an inline text input for renaming. */
 function startRename(card, titleEl, session) {
   const currentName = titleEl.textContent;
-  const input = document.createElement('input');
-  input.type = 'text';
+  const input = document.createElement("input");
+  input.type = "text";
   input.value = currentName;
-  input.className = 'sc-title-input';
+  input.className = "sc-title-input";
   titleEl.replaceWith(input);
   input.focus();
   input.select();
 
   function finishRename() {
     const newName = input.value.trim() || currentName;
-    const newTitle = document.createElement('div');
-    newTitle.className = 'sc-title';
+    const newTitle = document.createElement("div");
+    newTitle.className = "sc-title";
     newTitle.textContent = newName;
     card.dataset.name = newName;
     input.replaceWith(newTitle);
@@ -279,29 +332,43 @@ function startRename(card, titleEl, session) {
     }
   }
 
-  input.addEventListener('blur', finishRename);
-  input.addEventListener('keydown', function(ev) {
-    if (ev.key === 'Enter') { ev.preventDefault(); input.blur(); }
-    if (ev.key === 'Escape') { input.value = currentName; input.blur(); }
+  input.addEventListener("blur", finishRename);
+  input.addEventListener("keydown", function (ev) {
+    if (ev.key === "Enter") {
+      ev.preventDefault();
+      input.blur();
+    }
+    if (ev.key === "Escape") {
+      input.value = currentName;
+      input.blur();
+    }
   });
 }
 
-/** Toggle the "attached" flag on a session (pins it to the top). */
+/** Toggle the "attached" flag on a session (pins it to the top). Persisted via session metadata. */
 function toggleAttach(sessionId) {
-  const session = window.App.sessions.find(s => s.id === sessionId);
+  const session = window.App.sessions.find((s) => s.id === sessionId);
   if (session) {
     session.attached = !session.attached;
+    session.metadata = {
+      ...(session.metadata || {}),
+      attached: session.attached,
+    };
     renderSessionList();
-    window.electronAPI.session.update(sessionId, { attached: session.attached }).catch(() => {});
+    window.electronAPI.session
+      .update(sessionId, { metadata: session.metadata })
+      .catch(() => {});
   }
 }
 
 /** Filter session cards by name substring match. */
 function searchSessions(query) {
-  const cards = document.querySelectorAll('#normalSessions .session-card, #attachedSessions .session-card');
-  cards.forEach(card => {
-    const name = (card.dataset.name || '').toLowerCase();
-    card.style.display = !query || name.indexOf(query) !== -1 ? '' : 'none';
+  const cards = document.querySelectorAll(
+    "#normalSessions .session-card, #attachedSessions .session-card",
+  );
+  cards.forEach((card) => {
+    const name = (card.dataset.name || "").toLowerCase();
+    card.style.display = !query || name.indexOf(query) !== -1 ? "" : "none";
   });
 }
 
@@ -314,7 +381,9 @@ let _switchingSession = false;
 /** Get the current session ID, or create a new one if none exists. */
 async function ensureSession() {
   if (window.App.currentSession) {
-    console.log(`[Session] ensureSession: using existing ${window.App.currentSession}`);
+    console.log(
+      `[Session] ensureSession: using existing ${window.App.currentSession}`,
+    );
     return window.App.currentSession;
   }
   if (_sessionCreatePromise) return _sessionCreatePromise;
@@ -327,34 +396,42 @@ async function ensureSession() {
       // Save old session if it exists in the session list
       const lastActive = await window.electronAPI.session.getActive();
       if (lastActive) {
-        const exists = window.App.sessions.some(s => s.id === lastActive);
+        const exists = window.App.sessions.some((s) => s.id === lastActive);
         if (exists) {
-          try { await window.electronAPI.session.saveCurrent(); } catch (e) {}
+          try {
+            await window.electronAPI.session.saveCurrent();
+          } catch (e) {}
         }
       }
 
       const session = await window.electronAPI.session.create();
-      const newSession = typeof session === 'string' ? { id: session, title: '' } : session;
+      const newSession =
+        typeof session === "string" ? { id: session, title: "" } : session;
 
       // Restore snapshot or create empty dirs for new session
-      try { await window.electronAPI.session.restore(newSession.id); } catch (e) {}
+      try {
+        await window.electronAPI.session.restore(newSession.id);
+      } catch (e) {}
 
-      if (!newSession.title) newSession.title = '';
+      if (!newSession.title) newSession.title = "";
       window.App.currentSession = newSession.id;
-      newSession.title = newSession.title || '';
+      newSession.title = newSession.title || "";
       window.App.sessions.unshift(newSession);
       renderSessionList();
 
-      window.RightPanel.updateSessionName('New Chat');
+      window.RightPanel.updateSessionName("New Chat");
 
-      document.querySelectorAll('.session-card').forEach(c => {
-        c.classList.toggle('active', c.dataset.id === newSession.id);
+      document.querySelectorAll(".session-card").forEach((c) => {
+        c.classList.toggle("active", c.dataset.id === newSession.id);
       });
 
       return newSession.id;
     } catch (error) {
-      console.error(`[Session] ensureSession FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error.message);
-      if(window.App.debug)console.error('Failed to create session:', error);
+      console.error(
+        `[Session] ensureSession FAILED in ${(performance.now() - t0).toFixed(0)}ms:`,
+        error.message,
+      );
+      if (window.App.debug) console.error("Failed to create session:", error);
       throw error;
     }
   })();
@@ -366,4 +443,14 @@ async function ensureSession() {
   }
 }
 
-window.Sessions = { loadSessions, selectSession, deleteSession, renameSession, searchSessions, renderSessionList, ensureSession, getAllSessions: () => window.App.sessions || [], getSessions };
+window.Sessions = {
+  loadSessions,
+  selectSession,
+  deleteSession,
+  renameSession,
+  searchSessions,
+  renderSessionList,
+  ensureSession,
+  getAllSessions: () => window.App.sessions || [],
+  getSessions,
+};

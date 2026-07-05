@@ -10,44 +10,56 @@ const STATS_REFRESH_DELAY = 2000; // 2 seconds
 function initSSE() {
   window.electronAPI.onEvent((data) => {
     const props = data.properties || {};
-    const sid = props.sessionID || props.id || '';
+    const sid = props.sessionID || props.id || "";
     const isCurrent = sid === window.App.currentSession;
-    const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+    const elapsed = window.SSE.lastSendMessageTime
+      ? Date.now() - window.SSE.lastSendMessageTime
+      : -1;
 
-    if (isCurrent || data.type === 'session.status' || data.type === 'session.idle' || data.type === 'session.error') {
-      console.log(`[Perf] 📨 SSE event: ${data.type} | session: ${sid} | elapsed: ${elapsed}ms`);
+    if (
+      isCurrent ||
+      data.type === "session.status" ||
+      data.type === "session.idle" ||
+      data.type === "session.error"
+    ) {
+      console.log(
+        `[Perf] 📨 SSE event: ${data.type} | session: ${sid} | elapsed: ${elapsed}ms`,
+      );
     }
 
     switch (data.type) {
-      case 'message.part.updated':
+      case "message.part.updated":
         if (isCurrent) handlePartUpdate(data.properties);
         break;
-      case 'message.part.delta':
+      case "message.part.delta":
         if (isCurrent) handlePartDelta(data.properties);
         break;
-      case 'message.updated':
+      case "message.updated":
         if (isCurrent) handleMessageUpdated(data.properties);
         break;
-      case 'session.status':
+      case "session.status":
         handleSessionStatus(data.properties);
         break;
-      case 'question.asked':
+      case "question.asked":
         window.Modals.showQuestionModal(data.properties);
         break;
-      case 'permission.asked':
+      case "permission.asked":
         handlePermissionAsked(data.properties);
         break;
-      case 'todo.updated':
+      case "todo.updated":
         handleTodoUpdated(data.properties);
         break;
-      case 'session.updated':
+      case "session.updated":
         handleSessionUpdated(data.properties);
         break;
-      case 'session.idle':
+      case "session.idle":
         handleSessionIdle(data.properties);
         break;
-      case 'session.error':
+      case "session.error":
         handleSessionError(data.properties);
+        break;
+      case "session.compacted":
+        handleSessionCompacted(data.properties);
         break;
     }
   });
@@ -59,32 +71,41 @@ function handlePartUpdate(properties) {
   const { part, sessionID } = properties;
   if (!part || sessionID !== window.App.currentSession) return;
 
-  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
-  console.log(`[Perf] 🔧 PartUpdate: type=${part.type}, id=${part.id}, elapsed=${elapsed}ms`);
+  const elapsed = window.SSE.lastSendMessageTime
+    ? Date.now() - window.SSE.lastSendMessageTime
+    : -1;
+  console.log(
+    `[Perf] 🔧 PartUpdate: type=${part.type}, id=${part.id}, elapsed=${elapsed}ms`,
+  );
 
-  if ((part.type === 'reasoning' || part.type === 'step-start' || part.type === 'text') && !window.App.isProcessing) {
+  if (
+    (part.type === "reasoning" ||
+      part.type === "step-start" ||
+      part.type === "text") &&
+    !window.App.isProcessing
+  ) {
     window.Chat.setStopMode(true);
   }
 
-  if (part.type === 'reasoning') {
-    window.Chat.showThinking('Reasoning...');
-  } else if (part.type === 'step-start') {
+  if (part.type === "reasoning") {
+    window.Chat.showThinking("Reasoning...");
+  } else if (part.type === "step-start") {
     window.Chat.resetStreamingAccum();
-    window.Chat.showThinking('Thinking...');
-  } else if (part.type === 'text') {
+    window.Chat.showThinking("Thinking...");
+  } else if (part.type === "text") {
     if (part.id !== activeTextPartID) {
       window.Chat.resetStreamingAccum();
     }
     activeTextPartID = part.id;
-  } else if (part.type === 'step-finish') {
+  } else if (part.type === "step-finish") {
     activeTextPartID = null;
     window.Chat.removeStreamingCursor();
-  } else if (part.type === 'tool') {
-    const toolName = part.tool || 'tool';
+  } else if (part.type === "tool") {
+    const toolName = part.tool || "tool";
     if (window.App.isProcessing) {
-      window.Chat.showThinking('Using ' + toolName + '...');
+      window.Chat.showThinking("Using " + toolName + "...");
     }
-    if (part.tool === 'todowrite' && part.state && part.state.input) {
+    if (part.tool === "todowrite" && part.state && part.state.input) {
       const todos = part.state.input.todos;
       if (Array.isArray(todos)) {
         window.RightPanel.updateTodoList(todos);
@@ -99,7 +120,7 @@ function handlePartDelta(properties) {
   const { field, delta, sessionID, partID } = properties;
   if (sessionID !== window.App.currentSession) return;
 
-  if (field === 'text' && delta && partID === activeTextPartID) {
+  if (field === "text" && delta && partID === activeTextPartID) {
     window.Chat.appendStreamingText(delta);
   }
 }
@@ -108,8 +129,12 @@ function handlePartDelta(properties) {
 function handleMessageUpdated(properties) {
   if (!properties) return;
   const info = properties.info || properties;
-  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
-  console.log(`[Perf] ✅ MessageUpdated: completed=${!!(info.time && info.time.completed)}, elapsed=${elapsed}ms`);
+  const elapsed = window.SSE.lastSendMessageTime
+    ? Date.now() - window.SSE.lastSendMessageTime
+    : -1;
+  console.log(
+    `[Perf] ✅ MessageUpdated: completed=${!!(info.time && info.time.completed)}, elapsed=${elapsed}ms`,
+  );
   if (info.time && info.time.completed) {
     window.Chat.finalizeStreaming();
   }
@@ -123,58 +148,60 @@ function handleSessionStatus(properties) {
   if (eventSession && eventSession !== window.App.currentSession) return;
 
   const statusObj = properties.status;
-  const status = typeof statusObj === 'string' ? statusObj : (statusObj && statusObj.type) || '';
-  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  const status =
+    typeof statusObj === "string"
+      ? statusObj
+      : (statusObj && statusObj.type) || "";
+  const elapsed = window.SSE.lastSendMessageTime
+    ? Date.now() - window.SSE.lastSendMessageTime
+    : -1;
   console.log(`[Perf] 🔄 SessionStatus: ${status}, elapsed=${elapsed}ms`);
 
-  const statusEl = document.getElementById('sidebarStatus');
+  const statusEl = document.getElementById("sidebarStatus");
   if (!statusEl) return;
 
-  if (status === 'busy' || status === 'active' || status === 'running') {
+  // Real SessionStatus values are only "idle" | "busy" | "retry" (see opencode's
+  // SessionStatus schema). There is no "error" status value — actual errors
+  // arrive via the dedicated "session.error" event (handleSessionError below).
+  // Compaction is signaled separately via the "session.compacted" event,
+  // handled in handleSessionCompacted() below.
+  if (status === "busy") {
     isCompacting = false;
-    if (statusEl.textContent === 'Ready' || statusEl.textContent.startsWith('Ready')) {
-      statusEl.textContent = 'Processing...';
+    if (
+      statusEl.textContent === "Ready" ||
+      statusEl.textContent.startsWith("Ready")
+    ) {
+      statusEl.textContent = "Processing...";
     }
-  } else if (status === 'compacting' || status === 'compaction') {
-    isCompacting = true;
-    statusEl.textContent = 'Compacting...';
-    window.Chat.showCompaction('Compacting context');
-    if (!window.App.isProcessing) {
-      window.Chat.setStopMode(true);
-    }
-  } else if (status === 'error') {
-    statusEl.textContent = 'Error';
-    window.Chat.setStopMode(false);
-    isCompacting = false;
-    const errorMsg = properties.error || properties.message || 'An error occurred';
-    const errorStr = typeof errorMsg === 'string' ? errorMsg : (errorMsg.message || JSON.stringify(errorMsg));
-    if (errorStr.toLowerCase().includes('rate limit') || errorStr.toLowerCase().includes('too many requests')) {
-      window.Chat.showUsageExceed('Rate limit exceeded. Please wait and try again.');
-    } else if (errorStr.toLowerCase().includes('usage') || errorStr.toLowerCase().includes('quota') || errorStr.toLowerCase().includes('exceeded')) {
-      window.Chat.showUsageExceed('Usage limit exceeded.');
-    } else {
-      window.Chat.showError(errorStr);
-    }
-  } else if (status === 'retry') {
+  } else if (status === "retry") {
     const attempt = (statusObj && statusObj.attempt) || 0;
-    const retryMsg = (statusObj && statusObj.message) || 'Retrying...';
+    const retryMsg = (statusObj && statusObj.message) || "Retrying...";
     statusEl.textContent = `Retry ${attempt} — ${retryMsg}`;
     window.Chat.showThinking(`Retrying (${attempt})...`);
-  } else {
-    if (isCompacting) {
-      isCompacting = false;
-      window.Chat.showCompacted();
-      const sessionToRefresh = window.App.currentSession;
-      if (sessionToRefresh) {
-        setTimeout(() => {
+  }
+  // status === "idle" needs no handling here; see handleSessionIdle().
+}
+
+/** Handle the real "session.compacted" event fired when compaction finishes. */
+function handleSessionCompacted(properties) {
+  const eventSession = properties && (properties.sessionID || properties.id);
+  if (eventSession && eventSession !== window.App.currentSession) return;
+
+  isCompacting = false;
+  window.Chat.showCompacted();
+
+  const sessionToRefresh = window.App.currentSession;
+  if (sessionToRefresh) {
+    setTimeout(() => {
+      if (window.App.currentSession !== sessionToRefresh) return;
+      window.electronAPI.session
+        .messages(sessionToRefresh)
+        .then((messages) => {
           if (window.App.currentSession !== sessionToRefresh) return;
-          window.electronAPI.session.messages(sessionToRefresh).then(messages => {
-            if (window.App.currentSession !== sessionToRefresh) return;
-            window.Chat.renderMessages(messages);
-          }).catch(() => {});
-        }, 100);
-      }
-    }
+          window.Chat.renderMessages(messages);
+        })
+        .catch(() => {});
+    }, 100);
   }
 }
 
@@ -182,7 +209,9 @@ function handleSessionStatus(properties) {
 function handleSessionIdle(properties) {
   if (isCompacting) return;
 
-  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  const elapsed = window.SSE.lastSendMessageTime
+    ? Date.now() - window.SSE.lastSendMessageTime
+    : -1;
   console.log(`[Perf] 💤 SessionIdle: elapsed=${elapsed}ms`);
 
   if (properties && window.App.currentSession) {
@@ -192,12 +221,12 @@ function handleSessionIdle(properties) {
     }
   }
 
-  const statusEl = document.getElementById('sidebarStatus');
+  const statusEl = document.getElementById("sidebarStatus");
   if (!statusEl) return;
 
   const currentText = statusEl.textContent;
-  if (!currentText.includes('Ready') && !currentText.startsWith('Error')) {
-    statusEl.textContent = 'Ready';
+  if (!currentText.includes("Ready") && !currentText.startsWith("Error")) {
+    statusEl.textContent = "Ready";
   }
   window.Chat.finalizeStreaming();
   window.Chat.setStopMode(false);
@@ -206,53 +235,72 @@ function handleSessionIdle(properties) {
 
   const sessionToRefresh = window.App.currentSession;
   if (sessionToRefresh) {
-    window.electronAPI.session.messages(sessionToRefresh).then(messages => {
-      if (window.App.currentSession !== sessionToRefresh) return;
-      const msgList = messages.value || messages;
-      const existingMsgs = document.querySelectorAll('#chatArea .message');
+    window.electronAPI.session
+      .messages(sessionToRefresh)
+      .then((messages) => {
+        if (window.App.currentSession !== sessionToRefresh) return;
+        const msgList = messages.value || messages;
+        const existingMsgs = document.querySelectorAll("#chatArea .message");
 
-      // Update existing user messages with their IDs (they were sent without IDs)
-      const uiUserMsgs = Array.from(existingMsgs).filter(m => m.classList.contains('user-message'));
-      const apiUserMsgs = msgList.filter(m => m.info && m.info.role === 'user');
-      for (let i = 0; i < Math.min(uiUserMsgs.length, apiUserMsgs.length); i++) {
-        const uiMsg = uiUserMsgs[i];
-        const apiMsg = apiUserMsgs[i];
-        if (!uiMsg.dataset.messageId && apiMsg.info && apiMsg.info.id) {
-          uiMsg.dataset.messageId = apiMsg.info.id;
-          if (!uiMsg.querySelector('.msg-revert-btn')) {
-            const revertBtn = document.createElement('button');
-            revertBtn.className = 'msg-revert-btn';
-            revertBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h10a5 5 0 0 1 0 10H9"/><polyline points="7 14 3 10 7 6"/></svg>';
-            revertBtn.title = 'Revert to this point';
-            const cardText = uiMsg.querySelector('.msg-card')?.textContent || '';
-            revertBtn.addEventListener('click', () => window.Modals.showRevertModal(apiMsg.info.id, cardText));
-            uiMsg.appendChild(revertBtn);
-          }
-        }
-      }
-
-      // Only count API messages that have actual text content (create UI divs)
-      const textMsgList = msgList.filter(msg =>
-        msg.parts && msg.parts.some(p => p.type === 'text' && p.text)
-      );
-
-      // Compare text-message count vs UI div count (includes streaming div)
-      if (textMsgList.length > existingMsgs.length) {
-        const startIndex = existingMsgs.length;
-        const newMsgs = textMsgList.slice(startIndex);
-        for (const msg of newMsgs) {
-          const role = msg.info ? msg.info.role : 'assistant';
-          const id = msg.info ? msg.info.id : null;
-          for (const part of msg.parts) {
-            if (part.type === 'text' && part.text) {
-              window.Chat.appendMessage(role, part.text, id);
+        // Update existing user messages with their IDs (they were sent without IDs)
+        const uiUserMsgs = Array.from(existingMsgs).filter((m) =>
+          m.classList.contains("user-message"),
+        );
+        const apiUserMsgs = msgList.filter(
+          (m) => m.info && m.info.role === "user",
+        );
+        for (
+          let i = 0;
+          i < Math.min(uiUserMsgs.length, apiUserMsgs.length);
+          i++
+        ) {
+          const uiMsg = uiUserMsgs[i];
+          const apiMsg = apiUserMsgs[i];
+          if (!uiMsg.dataset.messageId && apiMsg.info && apiMsg.info.id) {
+            uiMsg.dataset.messageId = apiMsg.info.id;
+            if (!uiMsg.querySelector(".msg-revert-btn")) {
+              const revertBtn = document.createElement("button");
+              revertBtn.className = "msg-revert-btn";
+              revertBtn.innerHTML =
+                '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h10a5 5 0 0 1 0 10H9"/><polyline points="7 14 3 10 7 6"/></svg>';
+              revertBtn.title = "Revert to this point";
+              const cardText =
+                uiMsg.querySelector(".msg-card")?.textContent || "";
+              revertBtn.addEventListener("click", () =>
+                window.Modals.showRevertModal(apiMsg.info.id, cardText),
+              );
+              uiMsg.appendChild(revertBtn);
             }
           }
         }
-      }
-    }).catch(err => {
-      console.error('[RevertDebug] Failed to re-fetch messages after idle:', err);
-    });
+
+        // Only count API messages that have actual text content (create UI divs)
+        const textMsgList = msgList.filter(
+          (msg) =>
+            msg.parts && msg.parts.some((p) => p.type === "text" && p.text),
+        );
+
+        // Compare text-message count vs UI div count (includes streaming div)
+        if (textMsgList.length > existingMsgs.length) {
+          const startIndex = existingMsgs.length;
+          const newMsgs = textMsgList.slice(startIndex);
+          for (const msg of newMsgs) {
+            const role = msg.info ? msg.info.role : "assistant";
+            const id = msg.info ? msg.info.id : null;
+            for (const part of msg.parts) {
+              if (part.type === "text" && part.text) {
+                window.Chat.appendMessage(role, part.text, id);
+              }
+            }
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(
+          "[RevertDebug] Failed to re-fetch messages after idle:",
+          err,
+        );
+      });
   }
 
   refreshSessionStats();
@@ -261,18 +309,23 @@ function handleSessionIdle(properties) {
 /** Handle dedicated session.error events from the backend. */
 function handleSessionError(properties) {
   if (!properties) return;
-  const elapsed = window.SSE.lastSendMessageTime ? (Date.now() - window.SSE.lastSendMessageTime) : -1;
+  const elapsed = window.SSE.lastSendMessageTime
+    ? Date.now() - window.SSE.lastSendMessageTime
+    : -1;
   console.log(`[Perf] ❌ SessionError: elapsed=${elapsed}ms`, properties);
   const eventSession = properties.sessionID || properties.id;
   if (eventSession && eventSession !== window.App.currentSession) return;
 
-  const statusEl = document.getElementById('sidebarStatus');
-  if (statusEl) statusEl.textContent = 'Error';
+  const statusEl = document.getElementById("sidebarStatus");
+  if (statusEl) statusEl.textContent = "Error";
   window.Chat.setStopMode(false);
   isCompacting = false;
 
   const errorObj = properties.error || properties.message || properties;
-  const errorStr = typeof errorObj === 'string' ? errorObj : (errorObj.message || JSON.stringify(errorObj));
+  const errorStr =
+    typeof errorObj === "string"
+      ? errorObj
+      : errorObj.message || JSON.stringify(errorObj);
   window.Chat.showError(errorStr);
   window.Chat.hideThinking();
 }
@@ -293,16 +346,17 @@ async function refreshSessionStats() {
   if (statsRefreshThrottle) {
     clearTimeout(statsRefreshThrottle);
   }
-  
+
   statsRefreshThrottle = setTimeout(async () => {
     statsRefreshThrottle = null;
     try {
-      const messages = await window.electronAPI.session.messages(sessionToRefresh);
+      const messages =
+        await window.electronAPI.session.messages(sessionToRefresh);
       if (window.App.currentSession !== sessionToRefresh) return;
       const tokenData = window.RightPanel.aggregateTokensFromMessages(messages);
       window.RightPanel.updateContextStats(tokenData);
     } catch (error) {
-      console.error('[RENDERER] Session stats refresh error: ' + error.message);
+      console.error("[RENDERER] Session stats refresh error: " + error.message);
     }
   }, STATS_REFRESH_DELAY);
 }
@@ -316,12 +370,16 @@ function handleTodoUpdated(properties) {
   if (Array.isArray(todos)) {
     window.RightPanel.updateTodoList(todos);
     // Auto-open todo list when AI creates/updates todos
-    const todoList = document.getElementById('todoList');
-    const todoHeader = document.getElementById('todoHeader');
-    if (todoList && !todoList.classList.contains('active') && todos.length > 0) {
-      todoList.classList.add('active');
-      const arrow = todoHeader?.querySelector('.todo-arrow');
-      if (arrow) arrow.textContent = '\u25BC';
+    const todoList = document.getElementById("todoList");
+    const todoHeader = document.getElementById("todoHeader");
+    if (
+      todoList &&
+      !todoList.classList.contains("active") &&
+      todos.length > 0
+    ) {
+      todoList.classList.add("active");
+      const arrow = todoHeader?.querySelector(".todo-arrow");
+      if (arrow) arrow.textContent = "\u25BC";
       console.log(`[UI] Todo list auto-opened, ${todos.length} items`);
     }
   }
@@ -330,18 +388,20 @@ function handleTodoUpdated(properties) {
 /** Update session title in the sidebar and right panel when renamed by the backend. */
 function handleSessionUpdated(properties) {
   if (!properties) return;
-  const sessionId = properties.id || properties.sessionID || properties.session_id;
-  const title = properties.title 
-    || (properties.info && properties.info.title)
-    || (properties.session && properties.session.title);
+  const sessionId =
+    properties.id || properties.sessionID || properties.session_id;
+  const title =
+    properties.title ||
+    (properties.info && properties.info.title) ||
+    (properties.session && properties.session.title);
 
   if (!title || !sessionId) return;
-  if (title.startsWith('New Session-')) return;
+  if (title.startsWith("New Session-")) return;
 
   if (window.App.currentSession === sessionId) {
     window.RightPanel.updateSessionName(title);
   }
-  const session = window.App.sessions.find(s => s.id === sessionId);
+  const session = window.App.sessions.find((s) => s.id === sessionId);
   if (session) {
     session.title = title;
     window.Sessions.renderSessionList();
