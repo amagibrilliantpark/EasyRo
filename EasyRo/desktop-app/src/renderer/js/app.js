@@ -1,3 +1,16 @@
+/** Debounce utility function */
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
+}
+
 /** Main application entry point — wires up all UI event listeners. */
 const _appStartTime = performance.now();
 console.log(`[Init] DOMContentLoaded fired at ${(performance.now() - _appStartTime).toFixed(0)}ms`);
@@ -19,7 +32,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const readyTime = performance.now() - _appStartTime;
     console.log(`[Init] ✅ project:ready received at ${readyTime.toFixed(0)}ms, project: ${data.name}`);
 
-    document.getElementById('sidebarStatus').textContent = 'Ready — ' + data.name;
+    const sidebarStatusEl = Utils.$('sidebarStatus');
+    if (sidebarStatusEl) sidebarStatusEl.textContent = 'Ready — ' + data.name;
 
     console.log(`[Init] Loading sessions...`);
     const t0 = performance.now();
@@ -52,8 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedAgent) {
       console.log(`[Init] Restoring saved agent: ${savedAgent}`);
       window.App.currentAgent = savedAgent;
-      const modeSelector = document.getElementById('modeSelector');
-      modeSelector.querySelector('span').textContent = savedAgent.charAt(0).toUpperCase() + savedAgent.slice(1);
+      const modeSelector = Utils.$('modeSelector');
+      if (modeSelector) modeSelector.querySelector('span').textContent = savedAgent.charAt(0).toUpperCase() + savedAgent.slice(1);
       document.querySelectorAll('#modePopup .popup-item').forEach(item => {
         item.classList.toggle('selected', item.dataset.value === savedAgent);
       });
@@ -64,14 +78,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.electronAPI.onProjectError((data) => {
     console.error(`[Init] ❌ project:error received:`, data.error);
-    document.getElementById('sidebarStatus').textContent = 'Error: ' + data.error;
+    const sidebarStatusEl = Utils.$('sidebarStatus');
+    if (sidebarStatusEl) sidebarStatusEl.textContent = 'Error: ' + data.error;
   });
 
   // ── Startup status monitor ──
   let _lastStatusText = '';
   let _statusCheckCount = 0;
   const _statusMonitor = setInterval(() => {
-    const statusEl = document.getElementById('sidebarStatus');
+    const statusEl = Utils.$('sidebarStatus');
     if (!statusEl) return;
     const currentText = statusEl.textContent;
     if (currentText !== _lastStatusText) {
@@ -97,8 +112,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }, 500);
 
   // ── Sidebar toggle ──
-  const sidebar = document.getElementById('sidebar');
-  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebar = Utils.$('sidebar');
+  const sidebarToggle = Utils.$('sidebarToggle');
+  const searchBar = Utils.$('searchBar');
+  const sidebarLogo = document.querySelector('.sidebar-logo');
+  const sidebarBtns = document.querySelector('.sidebar-btns');
+  
   sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
     console.log(`[UI] Sidebar ${sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded'}`);
@@ -113,12 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.Settings.init();
 
   // ── Search ──
-  const searchToggle = document.getElementById('searchToggle');
-  const searchBar = document.getElementById('searchBar');
-  const searchInput = document.getElementById('searchInput');
-  const searchClose = document.getElementById('searchClose');
-  const sidebarLogo = document.querySelector('.sidebar-logo');
-  const sidebarBtns = document.querySelector('.sidebar-btns');
+  const searchToggle = Utils.$('searchToggle');
+  const searchInput = Utils.$('searchInput');
+  const searchClose = Utils.$('searchClose');
 
   searchToggle.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -135,11 +151,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Center Search Modal ──
-  const centerSearchModal = document.getElementById('centerSearchModal');
-  const centerSearchBackdrop = document.getElementById('centerSearchBackdrop');
-  const centerSearchClose = document.getElementById('centerSearchClose');
-  const centerSearchInput = document.getElementById('centerSearchInput');
-  const centerSearchResults = document.getElementById('centerSearchResults');
+  const centerSearchModal = Utils.$('centerSearchModal');
+  const centerSearchBackdrop = Utils.$('centerSearchBackdrop');
+  const centerSearchClose = Utils.$('centerSearchClose');
+  const centerSearchInput = Utils.$('centerSearchInput');
+  const centerSearchResults = Utils.$('centerSearchResults');
 
   function openCenterSearchModal() {
     centerSearchModal.classList.remove('hidden');
@@ -156,8 +172,17 @@ document.addEventListener('DOMContentLoaded', () => {
   centerSearchClose.addEventListener('click', closeCenterSearchModal);
   centerSearchBackdrop.addEventListener('click', closeCenterSearchModal);
 
+  // Debounce search inputs
+  const debouncedCenterSearch = debounce((query) => {
+    updateCenterSearchResults(query);
+  }, 250);
+  
+  const debouncedSidebarSearch = debounce((query) => {
+    window.Sessions.searchSessions(query);
+  }, 250);
+
   centerSearchInput.addEventListener('input', function() {
-    updateCenterSearchResults(this.value.toLowerCase());
+    debouncedCenterSearch(this.value.toLowerCase());
   });
 
   centerSearchInput.addEventListener('keydown', function(e) {
@@ -204,11 +229,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   searchInput.addEventListener('click', (e) => e.stopPropagation());
   searchInput.addEventListener('input', function() {
-    window.Sessions.searchSessions(this.value.toLowerCase());
+    debouncedSidebarSearch(this.value.toLowerCase());
   });
 
   // ── New chat — save current session, then deselect ──
-  document.getElementById('newChatBtn').addEventListener('click', async (e) => {
+  const newChatBtn = Utils.$('newChatBtn');
+  newChatBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
     console.log(`[UI] New chat button clicked`);
 
@@ -222,8 +248,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.Chat.resetStreamingAccum();
     window.Chat.hideAllStatusIndicators();
     document.querySelectorAll('.session-card').forEach(c => c.classList.remove('active'));
-    document.getElementById('chatArea').querySelectorAll('.message, .streaming-cursor').forEach(m => m.remove());
-    document.getElementById('emptyState').classList.add('active');
+    const chatArea = Utils.$('chatArea');
+    const emptyState = Utils.$('emptyState');
+    chatArea.querySelectorAll('.message, .streaming-cursor').forEach(m => m.remove());
+    emptyState.classList.add('active');
     window.RightPanel.updateSessionName('New Chat');
     window.RightPanel.clearTodoList();
     window.RightPanel.updateContextStats(null);
@@ -252,8 +280,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Mode selector (Build/Plan) ──
-  const modeSelector = document.getElementById('modeSelector');
-  const modePopup = document.getElementById('modePopup');
+  const modeSelector = Utils.$('modeSelector');
+  const modePopup = Utils.$('modePopup');
 
   modeSelector.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -277,8 +305,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Model selector ──
-  const modelSelector = document.getElementById('modelSelector');
-  const modelPopup = document.getElementById('modelPopup');
+  const modelSelector = Utils.$('modelSelector');
+  const modelPopup = Utils.$('modelPopup');
 
   modelSelector.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -295,8 +323,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Todo toggle ──
-  const todoHeader = document.getElementById('todoHeader');
-  const todoList = document.getElementById('todoList');
+  const todoHeader = Utils.$('todoHeader');
+  const todoList = Utils.$('todoList');
 
   todoHeader.addEventListener('click', () => {
     const isOpen = todoList.classList.contains('active');
@@ -313,7 +341,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /** Close all popup menus (mode, model, variant). */
 function closeAllPopups() {
-  document.getElementById('modePopup').classList.remove('active');
-  document.getElementById('modelPopup').classList.remove('active');
-  document.getElementById('variantPopup').classList.remove('active');
+  Utils.$('modePopup').classList.remove('active');
+  Utils.$('modelPopup').classList.remove('active');
+  Utils.$('variantPopup').classList.remove('active');
 }

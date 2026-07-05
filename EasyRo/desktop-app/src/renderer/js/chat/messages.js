@@ -1,7 +1,7 @@
 /** Re-render the full message list from session history. */
 function renderMessages(messages) {
-  const container = document.getElementById('chatArea');
-  const emptyState = document.getElementById('emptyState');
+  const container = Utils.$('chatArea');
+  const emptyState = Utils.$('emptyState');
 
   container.querySelectorAll('.message, .thinking-indicator, .error-indicator, .compaction-indicator, .usage-indicator, .streaming-cursor').forEach(m => m.remove());
   Chat.Streaming.resetAccum();
@@ -44,8 +44,8 @@ function renderMessages(messages) {
 /** Append a single message bubble to the chat area. */
 function appendMessage(role, text, messageId = null) {
   console.log('[RevertDebug] appendMessage called:', { role, messageId, textLen: text?.length });
-  const container = document.getElementById('chatArea');
-  const emptyState = document.getElementById('emptyState');
+  const container = Utils.$('chatArea');
+  const emptyState = Utils.$('emptyState');
   emptyState.classList.remove('active');
 
   const msg = document.createElement('div');

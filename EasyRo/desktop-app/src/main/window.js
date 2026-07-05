@@ -31,10 +31,6 @@ function createWindow() {
 
   log.info('WINDOW', `BrowserWindow created in ${Date.now() - windowStart}ms`);
 
-  mainWindow.maximize();
-  mainWindow.show();
-  log.info('WINDOW', `Window maximized and shown in ${Date.now() - windowStart}ms`);
-
   mainWindow.on('unmaximize', () => {
     mainWindow.setSize(1000, 700);
     mainWindow.center();
@@ -42,6 +38,12 @@ function createWindow() {
 
   log.info('WINDOW', 'Loading index.html...');
   mainWindow.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.maximize();
+    mainWindow.show();
+    log.info('WINDOW', `Window maximized and shown in ${Date.now() - windowStart}ms`);
+  });
 
   mainWindow.webContents.on('did-finish-load', () => {
     log.info('WINDOW', `index.html loaded in ${Date.now() - windowStart}ms`);
