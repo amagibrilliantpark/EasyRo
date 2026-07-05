@@ -11,7 +11,7 @@ function updateContextStats(tokenData) {
 
   let tokens = 0;
   let cost = 0;
-  let maxTokens = 200000;
+  let maxTokens = 0;
 
   if (tokenData) {
     const input = tokenData.input || 0;
@@ -19,29 +19,33 @@ function updateContextStats(tokenData) {
     const reasoning = tokenData.reasoning || 0;
     tokens = input + output + reasoning;
     cost = tokenData.cost || 0;
+  }
 
-    // Get max context from current model
-    if (window.App.currentModel && window.App.providers) {
-      const allProviders = window.App.providers.all || [];
-      for (const p of allProviders) {
-        if (p.id === window.App.currentModel.provider && p.models) {
-          const model = p.models[window.App.currentModel.model];
-          if (model && model.limit && model.limit.context) {
-            maxTokens = model.limit.context;
-          }
-          break;
+  // Get max context from current model
+  if (window.App.currentModel && window.App.providers) {
+    const allProviders = window.App.providers.all || [];
+    for (const p of allProviders) {
+      if (p.id === window.App.currentModel.provider && p.models) {
+        let model = p.models[window.App.currentModel.model];
+        if (!model) {
+          const modelArray = Object.values(p.models);
+          model = modelArray.find(m => m.id === window.App.currentModel.model);
         }
+        if (model) {
+          maxTokens = (model.limit && model.limit.context) || model.context_length || model.contextLength || 0;
+        }
+        break;
       }
     }
   }
 
   const percent = maxTokens > 0 ? Math.min(100, Math.round((tokens / maxTokens) * 100)) : 0;
+  const costStr = cost > 0 ? `$${cost.toFixed(4)}` : '$0.00';
+  const percentStr = maxTokens > 0 ? `${percent}% used` : '';
+  const tokenStr = tokens > 0 ? `${tokens.toLocaleString()} tokens` : '';
 
-  el.innerHTML = `
-    <span>${tokens.toLocaleString()} tokens</span>
-    <span>${percent}% used</span>
-    <span>$${cost.toFixed(4)} spent</span>
-  `;
+  const parts = [tokenStr, percentStr, `${costStr} spent`].filter(Boolean);
+  el.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
 }
 
 /** Render the todo list with checkboxes in the right panel. */
@@ -89,4 +93,21 @@ function updatePortDisplay(port) {
   }
 }
 
-window.RightPanel = { updateSessionName, updateContextStats, updateTodoList, clearTodoList, updatePortDisplay };
+function aggregateTokensFromMessages(messages) {
+  let input = 0, output = 0, reasoning = 0, cost = 0;
+  const list = messages.value || messages || [];
+  for (const msg of list) {
+    const info = msg.info || msg;
+    if (info.role === 'assistant' && info.tokens) {
+      input += info.tokens.input || 0;
+      output += info.tokens.output || 0;
+      reasoning += info.tokens.reasoning || 0;
+    }
+    if (info.role === 'assistant' && typeof info.cost === 'number') {
+      cost += info.cost;
+    }
+  }
+  return { input, output, reasoning, cost };
+}
+
+window.RightPanel = { updateSessionName, updateContextStats, updateTodoList, clearTodoList, updatePortDisplay, aggregateTokensFromMessages };

@@ -247,7 +247,7 @@ function setupIpcHandlers(instanceManager, sessionManager, project) {
           });
         } else {
           mainWindow.setTitleBarOverlay({
-            color: '#f5f7fa',
+            color: '#d4e7fb',
             symbolColor: '#18283a',
             height: 22
           });

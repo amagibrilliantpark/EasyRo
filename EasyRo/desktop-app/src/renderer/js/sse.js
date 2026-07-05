@@ -284,7 +284,7 @@ function handlePermissionAsked(properties) {
   if (sessionID && sessionID !== window.App.currentSession) return;
 }
 
-/** Re-fetch session list to update token counts and cost in the right panel. */
+/** Re-fetch messages to update token counts and cost in the right panel. */
 async function refreshSessionStats() {
   const sessionToRefresh = window.App.currentSession;
   if (!sessionToRefresh) return;
@@ -297,23 +297,10 @@ async function refreshSessionStats() {
   statsRefreshThrottle = setTimeout(async () => {
     statsRefreshThrottle = null;
     try {
-      const response = await window.electronAPI.session.list();
+      const messages = await window.electronAPI.session.messages(sessionToRefresh);
       if (window.App.currentSession !== sessionToRefresh) return;
-      const allSessions = response.value || response || [];
-      const session = allSessions.find(s => s.id === sessionToRefresh);
-      if (session) {
-        window.RightPanel.updateContextStats({
-          input: session.tokens ? session.tokens.input : 0,
-          output: session.tokens ? session.tokens.output : 0,
-          reasoning: session.tokens ? session.tokens.reasoning : 0,
-          cost: session.cost || 0
-        });
-        const localSession = window.App.sessions.find(s => s.id === session.id);
-        if (localSession) {
-          localSession.tokens = session.tokens;
-          localSession.cost = session.cost;
-        }
-      }
+      const tokenData = window.RightPanel.aggregateTokensFromMessages(messages);
+      window.RightPanel.updateContextStats(tokenData);
     } catch (error) {
       console.error('[RENDERER] Session stats refresh error: ' + error.message);
     }

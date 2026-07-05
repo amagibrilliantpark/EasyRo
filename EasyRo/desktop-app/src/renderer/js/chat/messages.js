@@ -23,6 +23,15 @@ function renderMessages(messages) {
     if (msg.parts) {
       for (const part of msg.parts) {
         if (part.type === 'text' && part.text) {
+          // Skip auto-compaction continuation messages (official OpenCode flag)
+          if (part.metadata && part.metadata.compaction_continue) {
+            console.log('[RevertDebug] Skipping compaction_continue message');
+            continue;
+          }
+          if (part.synthetic) {
+            console.log('[RevertDebug] Skipping synthetic message');
+            continue;
+          }
           appendMessage(role, part.text, id);
         }
       }
