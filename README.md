@@ -47,9 +47,7 @@ Before using EasyRo, you need:
 You have two options for the AI backend:
 
 1. **Free models** — OpenCode offers free models out of the box. Just install the CLI and start using it, no API key needed.
-2. **Your own API key** — If you have any API key, you can connect it to use your preferred models.
-
-To connect your own key, run `opencode` in a terminal and use the `/connect` command.
+2. **Your own API key** — If you have any API key, you can connect it directly from EasyRo: click **Add** in the model selector, pick a provider (or add a custom one), and enter your API key or complete the OAuth flow. No terminal needed.
 
 Rojo (`rojo.exe`) is included in the project — you don't need to install it separately.
 
