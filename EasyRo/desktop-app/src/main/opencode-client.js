@@ -160,6 +160,24 @@ class OpenCodeClient {
   listProviders() {
     return this.request("GET", "/provider");
   }
+  getProviderAuth() {
+    return this.request("GET", "/provider/auth");
+  }
+  setAuth(id, credentials) {
+    return this.request("PUT", `/auth/${id}`, credentials);
+  }
+  oauthAuthorize(providerId, method, inputs) {
+    return this.request("POST", `/provider/${providerId}/oauth/authorize`, {
+      method,
+      ...(inputs && { inputs }),
+    });
+  }
+  oauthCallback(providerId, method, code) {
+    return this.request("POST", `/provider/${providerId}/oauth/callback`, {
+      method,
+      ...(code && { code }),
+    });
+  }
   listAgents() {
     return this.request("GET", "/agent");
   }
