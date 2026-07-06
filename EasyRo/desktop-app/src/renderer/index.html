@@ -179,7 +179,9 @@
                         stop-opacity="0"
                     />
                 </radialGradient>
-                <filter id="blur1d"><feGaussianBlur stdDeviation="10" /></filter>
+                <filter id="blur1d">
+                    <feGaussianBlur stdDeviation="10" />
+                </filter>
             </defs>
             <g filter="url(#blur1d)">
                 <ellipse
@@ -641,7 +643,7 @@
                 <div class="rp-todo-list" id="todoList"></div>
                 <div class="rp-footer">
                     <span class="rp-footer-logo">Easy<em>Ro</em></span>
-                    <span class="rp-footer-ver">v1.1.2</span>
+                    <span class="rp-footer-ver">v1.2.0</span>
                 </div>
             </aside>
         </div>
@@ -656,6 +658,7 @@
         <script src="js/sse.js"></script>
         <script src="js/modals/question.js"></script>
         <script src="js/modals/revert.js"></script>
+        <script src="js/modals/provider.js"></script>
         <script src="js/providers.js"></script>
         <script src="js/right-panel.js"></script>
         <script src="js/settings.js"></script>
@@ -674,6 +677,195 @@
                 <div class="rm-footer">
                     <button class="rm-btn-cancel" id="rmCancel">Cancel</button>
                     <button class="rm-btn-revert" id="rmRevert">Revert</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Provider Modal (hidden by default) -->
+        <div class="provider-modal-overlay hidden" id="providerModalOverlay">
+            <div
+                class="provider-modal-backdrop"
+                id="providerModalBackdrop"
+            ></div>
+            <div class="provider-modal" id="providerModal">
+                <div class="provider-modal-header">
+                    <span class="provider-modal-title">Add Provider</span>
+                    <button
+                        class="provider-modal-close"
+                        id="providerModalClose"
+                    >
+                        <svg
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M4 4l8 8M12 4l-8 8" />
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Provider list -->
+                <div class="provider-list active" id="providerList">
+                    <div class="provider-list-empty">Loading providers...</div>
+                </div>
+
+                <!-- Provider detail (key input) -->
+                <div class="provider-detail" id="providerDetail">
+                    <div class="provider-detail-header">
+                        <button
+                            class="provider-detail-back"
+                            id="providerDetailBack"
+                        >
+                            <svg viewBox="0 0 16 16">
+                                <path d="M10 4L6 8l4 4" />
+                            </svg>
+                        </button>
+                        <span
+                            class="provider-detail-title"
+                            id="providerDetailTitle"
+                            >Provider</span
+                        >
+                    </div>
+
+                    <!-- Default provider detail -->
+                    <div
+                        class="provider-detail-default active"
+                        id="providerDetailDefault"
+                    >
+                        <div class="provider-field-group">
+                            <div
+                                class="provider-detail-hint"
+                                id="providerDetailHint"
+                            >
+                                Enter your API key to connect.
+                            </div>
+                        </div>
+                        <div class="provider-field-group" id="providerKeyRow">
+                            <div class="provider-detail-label">API Key</div>
+                            <input
+                                class="provider-key-input"
+                                type="text"
+                                id="providerKeyInput"
+                                placeholder="sk-..."
+                                autocomplete="off"
+                                spellcheck="false"
+                            />
+                        </div>
+                        <div
+                            class="provider-field-group"
+                            id="providerOAuthCodeRow"
+                            style="display: none"
+                        >
+                            <div class="provider-detail-label">
+                                Authorization Code
+                            </div>
+                            <input
+                                class="provider-key-input"
+                                type="text"
+                                id="providerOAuthCodeInput"
+                                placeholder="Paste the code here..."
+                                autocomplete="off"
+                                spellcheck="false"
+                            />
+                        </div>
+                        <div id="providerExtraFields"></div>
+                    </div>
+
+                    <!-- Custom provider detail (two-step) -->
+                    <div
+                        class="provider-detail-custom"
+                        id="providerDetailCustom"
+                    >
+                        <!-- Step 1: Provider ID -->
+                        <div
+                            class="provider-field-group"
+                            id="providerCustomIdRow"
+                        >
+                            <div class="provider-detail-hint">
+                                Enter provider id
+                            </div>
+                            <input
+                                class="provider-key-input"
+                                type="text"
+                                id="providerCustomId"
+                                placeholder="https://api.my-provider.com/v1"
+                                autocomplete="off"
+                                spellcheck="false"
+                            />
+                        </div>
+                        <!-- Step 2: API Key -->
+                        <div
+                            class="provider-field-group"
+                            id="providerCustomKeyRow"
+                            style="display: none"
+                        >
+                            <div
+                                class="provider-detail-note provider-detail-warning"
+                                id="providerCustomNote"
+                            >
+                                ▲ This only stores a credential for
+                                <strong id="providerCustomIdDisplay"></strong> —
+                                you will need to configure it in opencode.json,
+                                check the
+                                <a
+                                    href="https://opencode.ai/docs/providers#custom-provider"
+                                    target="_blank"
+                                    style="color: var(--accent-color)"
+                                    >docs</a
+                                >
+                                for examples.
+                            </div>
+                            <div class="provider-detail-label">API Key</div>
+                            <input
+                                class="provider-key-input"
+                                type="text"
+                                id="providerCustomKey"
+                                placeholder="sk-..."
+                                autocomplete="off"
+                                spellcheck="false"
+                            />
+                        </div>
+                    </div>
+
+                    <div class="provider-error" id="providerError">
+                        Connection failed
+                    </div>
+                    <div class="provider-detail-actions">
+                        <button
+                            class="provider-btn-cancel"
+                            id="providerBtnCancel"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            class="provider-btn-connect"
+                            id="providerBtnConnect"
+                        >
+                            <span>Connect</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Provider success -->
+                <div class="provider-success" id="providerSuccess">
+                    <svg
+                        class="provider-success-icon"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                    <div class="provider-success-text">Connected!</div>
+                    <div class="provider-success-sub">
+                        Provider has been added successfully.
+                    </div>
                 </div>
             </div>
         </div>
@@ -736,7 +928,9 @@
                             stop-color="rgba(170,208,245,0.1)"
                         />
                     </radialGradient>
-                    <filter id="sblur1"><feGaussianBlur stdDeviation="10" /></filter>
+                    <filter id="sblur1">
+                        <feGaussianBlur stdDeviation="10" />
+                    </filter>
                 </defs>
                 <rect width="100%" height="100%" fill="var(--bg-primary)" />
                 <g filter="url(#sblur1)">
@@ -860,7 +1054,9 @@
                             stop-opacity="0"
                         />
                     </radialGradient>
-                    <filter id="sblur1d"><feGaussianBlur stdDeviation="10" /></filter>
+                    <filter id="sblur1d">
+                        <feGaussianBlur stdDeviation="10" />
+                    </filter>
                 </defs>
                 <g filter="url(#sblur1d)">
                     <ellipse

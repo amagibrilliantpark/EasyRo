@@ -34,6 +34,33 @@ function populateModelSelector(providers) {
   const modelSelector = document.getElementById('modelSelector');
   modelPopup.innerHTML = '';
 
+  // Add header with "Add Provider" button
+  const header = document.createElement('div');
+  header.className = 'model-popup-header';
+  header.innerHTML = `
+    <span class="model-popup-header-label">Providers</span>
+    <button class="btn-add-provider" id="addProviderBtn">
+      <svg viewBox="0 0 16 16"><line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/></svg>
+      Add
+    </button>
+  `;
+  modelPopup.appendChild(header);
+
+  // Create scrollable list container for model items
+  const list = document.createElement('div');
+  list.className = 'model-popup-list';
+  modelPopup.appendChild(list);
+
+  // Wire up the add provider button
+  const addBtn = header.querySelector('.btn-add-provider');
+  addBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    modelPopup.classList.remove('active');
+    if (window.ProviderModal) {
+      window.ProviderModal.open();
+    }
+  });
+
   if (!providers) return;
 
   const connectedIds = providers.connected || [];
@@ -61,7 +88,7 @@ function populateModelSelector(providers) {
 
       item.addEventListener('click', (e) => {
         e.stopPropagation();
-        modelPopup.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected'));
+        list.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected'));
         item.classList.add('selected');
         modelSelector.querySelector('span').textContent = name;
 
@@ -77,7 +104,7 @@ function populateModelSelector(providers) {
         }
       });
 
-      modelPopup.appendChild(item);
+      list.appendChild(item);
 
       if (!firstItem) {
         firstItem = { el: item, provider: provider.id, model: model.id, name, modelData: model };
