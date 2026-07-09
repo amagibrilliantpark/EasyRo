@@ -33,3 +33,6 @@ EasyRo/desktop-app/yarn.lock
 EasyRo/.sessions/
 EasyRo/logs/
 
+# Temp files
+git_diff.txt
+
