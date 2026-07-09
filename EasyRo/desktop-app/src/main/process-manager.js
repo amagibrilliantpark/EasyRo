@@ -16,91 +16,6 @@ function execAsync(command, timeout = 5000) {
   });
 }
 
-/** Spawn the Rojo process and resolve when it starts listening. */
-async function startRojo(instance) {
-  const { project, ports } = instance;
-  const rojoPath = findRojoExecutable(project.path);
-  const spawnStart = Date.now();
-  log.info('ROJO', `Spawning Rojo: ${rojoPath} serve --port ${ports.rojo} (cwd: ${project.path})`);
-
-  return new Promise((resolve, reject) => {
-    const args = ['serve', '--port', ports.rojo.toString()];
-    const child = spawn(rojoPath, args, {
-      cwd: project.path,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: false,
-      windowsHide: true
-    });
-
-    instance.rojoProcess = child;
-
-    let started = false;
-    let stdoutBuffer = '';
-    let stderrBuffer = '';
-    const timeout = setTimeout(() => {
-      if (!started) {
-        child.kill();
-        log.error('ROJO', `Rojo start TIMEOUT after 30s, killing process`);
-        reject(new Error('Rojo start timeout'));
-      }
-    }, 30000);
-
-    // Progress log every 5s if Rojo hasn't started
-    const progressLog = setInterval(() => {
-      if (started) { clearInterval(progressLog); return; }
-      log.info('ROJO', `Still waiting for Rojo... (${((Date.now() - spawnStart) / 1000).toFixed(0)}s)`);
-    }, 5000);
-
-    child.stdout.on('data', (data) => {
-      stdoutBuffer += data.toString();
-      const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-      log.info('ROJO', 'stdout:', clean.trim());
-      if (clean.includes('listening') || clean.includes('server started')) {
-        if (!started) {
-          started = true;
-          clearInterval(progressLog);
-          clearTimeout(timeout);
-          log.info('ROJO', `Rojo ready in ${Date.now() - spawnStart}ms`);
-          resolve();
-        }
-      }
-    });
-
-    child.stderr.on('data', (data) => {
-      stderrBuffer += data.toString();
-      const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
-      log.warn('ROJO', 'stderr:', clean.trim());
-      if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
-        if (!started) {
-          started = true;
-          clearInterval(progressLog);
-          clearTimeout(timeout);
-          reject(new Error(`Rojo error: ${stderrBuffer}`));
-        }
-      }
-    });
-
-    child.on('error', (error) => {
-      if (!started) {
-        started = true;
-        clearInterval(progressLog);
-        clearTimeout(timeout);
-        reject(error);
-      }
-    });
-
-    child.on('exit', (code) => {
-      log.info('ROJO', 'Exited with code', code);
-      if (!started) {
-        started = true;
-        clearInterval(progressLog);
-        clearTimeout(timeout);
-        reject(new Error(`Rojo exited with code ${code}`));
-      }
-    });
-  });
-}
-
 /** Spawn the OpenCode serve process and resolve when it's ready. */
 async function startOpencode(instance) {
   const { project, ports } = instance;
@@ -188,29 +103,114 @@ async function startOpencode(instance) {
   });
 }
 
-/** Find rojo.exe in the project dir, packaged resources, parent dir, or fall back to PATH. */
-function findRojoExecutable(projectPath) {
+/** Find syncro.exe in the project dir, packaged resources, parent dir, or fall back to PATH. */
+function findSyncRoExecutable(projectPath) {
   // 1) Bundled alongside the project (dev or user-data copy)
-  const localRojo = path.join(projectPath, 'rojo.exe');
-  if (fs.existsSync(localRojo)) return localRojo;
+  const localSyncro = path.join(projectPath, 'syncro.exe');
+  if (fs.existsSync(localSyncro)) return localSyncro;
 
-  // 2) Packaged as an extraResource (NSIS / portable → resources/rojo.exe)
+  // 2) Packaged as an extraResource (NSIS / portable → resources/syncro.exe)
   if (process.resourcesPath) {
-    const resourcesRojo = path.join(process.resourcesPath, 'rojo.exe');
-    if (fs.existsSync(resourcesRojo)) return resourcesRojo;
+    const resourcesSyncro = path.join(process.resourcesPath, 'syncro.exe');
+    if (fs.existsSync(resourcesSyncro)) return resourcesSyncro;
   }
 
   // 3) Parent directory (portable exe sitting next to the project folder)
-  const parentRojo = path.join(path.dirname(projectPath), 'rojo.exe');
-  if (fs.existsSync(parentRojo)) return parentRojo;
+  const parentSyncro = path.join(path.dirname(projectPath), 'syncro.exe');
+  if (fs.existsSync(parentSyncro)) return parentSyncro;
 
   // 4) System PATH
-  return 'rojo';
+  return 'syncro';
+}
+
+/** Spawn the SyncRo process and resolve when it starts listening. */
+async function startSyncRo(instance) {
+  const { project, ports } = instance;
+  const syncroPath = findSyncRoExecutable(project.path);
+  const spawnStart = Date.now();
+  log.info('SYNCRO', `Spawning SyncRo: ${syncroPath} start --port ${ports.syncro} --path ${project.path}`);
+
+  return new Promise((resolve, reject) => {
+    const args = ['start', '--port', ports.syncro.toString(), '--path', project.path];
+    const child = spawn(syncroPath, args, {
+      cwd: project.path,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: false,
+      windowsHide: true
+    });
+
+    instance.syncroProcess = child;
+
+    let started = false;
+    let stdoutBuffer = '';
+    let stderrBuffer = '';
+    const timeout = setTimeout(() => {
+      if (!started) {
+        child.kill();
+        log.error('SYNCRO', `SyncRo start TIMEOUT after 30s, killing process`);
+        reject(new Error('SyncRo start timeout'));
+      }
+    }, 30000);
+
+    // Progress log every 5s if SyncRo hasn't started
+    const progressLog = setInterval(() => {
+      if (started) { clearInterval(progressLog); return; }
+      log.info('SYNCRO', `Still waiting for SyncRo... (${((Date.now() - spawnStart) / 1000).toFixed(0)}s)`);
+    }, 5000);
+
+    child.stdout.on('data', (data) => {
+      stdoutBuffer += data.toString();
+      const clean = stdoutBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+      log.info('SYNCRO', 'stdout:', clean.trim());
+      if (clean.includes('started') || clean.includes('watching') || clean.includes('listening')) {
+        if (!started) {
+          started = true;
+          clearInterval(progressLog);
+          clearTimeout(timeout);
+          log.info('SYNCRO', `SyncRo ready in ${Date.now() - spawnStart}ms`);
+          resolve();
+        }
+      }
+    });
+
+    child.stderr.on('data', (data) => {
+      stderrBuffer += data.toString();
+      const clean = stderrBuffer.replace(/\x1b\[[0-9;]*m/g, '').toLowerCase();
+      log.warn('SYNCRO', 'stderr:', clean.trim());
+      if ((clean.includes('error') && !clean.includes('no error')) || clean.includes('fatal') || clean.includes('failed')) {
+        if (!started) {
+          started = true;
+          clearInterval(progressLog);
+          clearTimeout(timeout);
+          reject(new Error(`SyncRo error: ${stderrBuffer}`));
+        }
+      }
+    });
+
+    child.on('error', (error) => {
+      if (!started) {
+        started = true;
+        clearInterval(progressLog);
+        clearTimeout(timeout);
+        reject(error);
+      }
+    });
+
+    child.on('exit', (code) => {
+      log.info('SYNCRO', 'Exited with code', code);
+      if (!started) {
+        started = true;
+        clearInterval(progressLog);
+        clearTimeout(timeout);
+        reject(new Error(`SyncRo exited with code ${code}`));
+      }
+    });
+  });
 }
 
 /** Kill any process already listening on the given ports. */
-async function killProcessesOnPorts(rojoPort, opencodePort) {
-  for (const port of [rojoPort, opencodePort]) {
+async function killProcessesOnPorts(syncroPort, opencodePort) {
+  for (const port of [syncroPort, opencodePort]) {
     try {
       if (process.platform === 'win32') {
         const result = await execAsync(`powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`, 5000);
@@ -242,4 +242,4 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = { startRojo, startOpencode, findRojoExecutable, killProcessesOnPorts, sleep };
+module.exports = { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, sleep };

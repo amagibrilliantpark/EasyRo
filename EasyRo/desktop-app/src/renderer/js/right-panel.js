@@ -85,11 +85,12 @@ function clearTodoList() {
   if (container) container.innerHTML = '';
 }
 
-/** Update the Rojo port display in the right panel. */
-function updatePortDisplay(port) {
-  const el = document.getElementById('rpPortValue');
+/** Update the SyncRo status in the right panel. */
+function updateSyncRoStatus(status) {
+  const el = document.getElementById('rpSyncRoStatus');
   if (el) {
-    el.textContent = port ? port : '---';
+    el.textContent = status || 'Unknown';
+    el.className = 'rp-syncro-status ' + (status === 'Running' ? 'running' : 'stopped');
   }
 }
 
@@ -110,4 +111,4 @@ function aggregateTokensFromMessages(messages) {
   return { input, output, reasoning, cost };
 }
 
-window.RightPanel = { updateSessionName, updateContextStats, updateTodoList, clearTodoList, updatePortDisplay, aggregateTokensFromMessages };
+window.RightPanel = { updateSessionName, updateContextStats, updateTodoList, clearTodoList, updateSyncRoStatus, aggregateTokensFromMessages };
