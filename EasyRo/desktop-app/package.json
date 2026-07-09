@@ -1,6 +1,6 @@
 {
   "name": "easyro-desktop",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "description": "EasyRo - Roblox Studio AI Assistant",
   "main": "src/main/main.js",
   "author": "EasyRo",
@@ -26,12 +26,12 @@
     ],
     "extraResources": [
       {
-        "from": "../rojo.exe",
-        "to": "rojo.exe"
+        "from": "../syncro.exe",
+        "to": "syncro.exe"
       },
       {
-        "from": "../Rojo.rbxm",
-        "to": "Rojo.rbxm"
+        "from": "../SyncRo.rbxmx",
+        "to": "SyncRo.rbxmx"
       },
       {
         "from": "../default.project.json",
@@ -115,6 +115,9 @@
       "include": "installer-custom.nsh",
       "artifactName": "${productName} Setup.${ext}"
     }
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
   },
   "devDependencies": {
     "electron": "^33.0.0",

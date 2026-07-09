@@ -1,32 +1,32 @@
 const path = require('path');
 const log = require('./logger');
 const { OpenCodeClient } = require('./opencode-client');
-const { startRojo, startOpencode, findRojoExecutable, killProcessesOnPorts, sleep } = require('./process-manager');
+const { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, sleep } = require('./process-manager');
 
-/** Manages Rojo and OpenCode child processes per project. */
+/** Manages SyncRo and OpenCode child processes per project. */
 class InstanceManager {
   constructor() {
     this.instances = new Map();
-    this.baseRojoPort = 3000;
+    this.baseSyncRoPort = 5000;
     this.baseOpencodePort = 4096;
-    this.portAllocator = { rojo: 0, opencode: 0 };
+    this.portAllocator = { syncro: 0, opencode: 0 };
     this._startingPromise = null;
   }
 
-  /** Allocate the next available port pair for Rojo and OpenCode. */
+  /** Allocate the next available port pair for SyncRo and OpenCode. */
   allocatePorts(projectId) {
     const maxOffset = 100;
-    if (this.portAllocator.rojo >= maxOffset) {
-      this.portAllocator.rojo = 0;
+    if (this.portAllocator.syncro >= maxOffset) {
+      this.portAllocator.syncro = 0;
     }
     if (this.portAllocator.opencode >= maxOffset) {
       this.portAllocator.opencode = 0;
     }
     const ports = {
-      rojo: this.baseRojoPort + this.portAllocator.rojo,
+      syncro: this.baseSyncRoPort + this.portAllocator.syncro,
       opencode: this.baseOpencodePort + this.portAllocator.opencode
     };
-    this.portAllocator.rojo++;
+    this.portAllocator.syncro++;
     this.portAllocator.opencode++;
     return ports;
   }
@@ -45,7 +45,7 @@ class InstanceManager {
     }
   }
 
-  /** Internal: kill existing instance, spawn Rojo + OpenCode, wait for health. */
+  /** Internal: kill existing instance, spawn SyncRo + OpenCode, wait for health. */
   async _doStartInstance(project, ports) {
     const { id: projectId, path: projectPath } = project;
     const instanceStart = Date.now();
@@ -58,15 +58,15 @@ class InstanceManager {
       log.info('INSTANCE', `Existing instance stopped in ${Date.now() - stopStart}ms`);
     }
 
-    log.info('INSTANCE', `Killing processes on ports: ${ports.rojo} and ${ports.opencode}`);
+    log.info('INSTANCE', `Killing processes on ports: ${ports.syncro} and ${ports.opencode}`);
     const killStart = Date.now();
-    await killProcessesOnPorts(ports.rojo, ports.opencode);
+    await killProcessesOnPorts(ports.syncro, ports.opencode);
     log.info('INSTANCE', `Ports cleared in ${Date.now() - killStart}ms`);
 
     const instance = {
       project,
       ports,
-      rojoProcess: null,
+      syncroProcess: null,
       opencodeProcess: null,
       client: null,
       status: 'starting'
@@ -76,10 +76,10 @@ class InstanceManager {
     log.info('INSTANCE', 'Instance object created with status: starting');
 
     try {
-      log.info('INSTANCE', 'Starting Rojo process...');
-      const rojoStart = Date.now();
-      await startRojo(instance);
-      log.info('INSTANCE', `Rojo started in ${Date.now() - rojoStart}ms`);
+      log.info('INSTANCE', 'Starting SyncRo process...');
+      const syncroStart = Date.now();
+      await startSyncRo(instance);
+      log.info('INSTANCE', `SyncRo started in ${Date.now() - syncroStart}ms`);
 
       log.info('INSTANCE', 'Starting OpenCode process...');
       const ocStart = Date.now();
@@ -141,10 +141,10 @@ class InstanceManager {
 
     const exitPromises = [];
 
-    if (instance.rojoProcess) {
+    if (instance.syncroProcess) {
       exitPromises.push(new Promise((resolve) => {
-        instance.rojoProcess.on('exit', resolve);
-        instance.rojoProcess.kill();
+        instance.syncroProcess.on('exit', resolve);
+        instance.syncroProcess.kill();
       }));
     }
     if (instance.opencodeProcess) {

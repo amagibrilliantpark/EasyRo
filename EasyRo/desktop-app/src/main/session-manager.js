@@ -3,11 +3,12 @@ const path = require('path');
 const log = require('./logger');
 
 class SessionManager {
-  constructor(projectPath) {
+  constructor(projectPath, syncroClient = null) {
     this.projectPath = projectPath;
     this.sessionsDir = path.join(projectPath, '.sessions');
     this.srcDir = path.join(projectPath, 'src');
     this.activeFile = path.join(this.sessionsDir, '.active');
+    this.syncroClient = syncroClient;
     // Config files to include in session snapshots (besides src/)
     this.configFiles = ['default.project.json', 'opencode.json', 'AGENTS.md'];
   }
@@ -59,9 +60,15 @@ class SessionManager {
     log.info('SESSION', 'Saved snapshot for', sessionId);
   }
 
-  restoreFrom(sessionId) {
+  async restoreFrom(sessionId) {
     if (!sessionId) return;
     const snapshotDir = path.join(this.sessionsDir, sessionId);
+
+    // Pause SyncRo before file operations to prevent conflicts
+    if (this.syncroClient && this.syncroClient.isConnected()) {
+      log.info('SESSION', 'Pausing SyncRo before session restore');
+      await this.syncroClient.pause();
+    }
 
     // Restore src/ directory
     if (fs.existsSync(this.srcDir)) {
@@ -99,6 +106,12 @@ class SessionManager {
     }
 
     this.setActiveSession(sessionId);
+
+    // Resume SyncRo with full sync after file operations
+    if (this.syncroClient && this.syncroClient.isConnected()) {
+      log.info('SESSION', 'Resuming SyncRo with full sync after session restore');
+      this.syncroClient.resumeWithFullSync();
+    }
   }
 
   deleteSnapshot(sessionId) {

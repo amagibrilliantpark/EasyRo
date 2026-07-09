@@ -6,34 +6,34 @@ const log = require('./logger');
 const PROJECT_ID = 'default';
 
 /**
- * Install the Rojo plugin into Roblox Studio's Plugins folder if missing.
+ * Install the SyncRo plugin into Roblox Studio's Plugins folder if missing.
  * Handles both dev mode (file next to project) and packaged mode (extraResource).
  */
-function ensureRojoPlugin() {
+function ensureSyncRoPlugin() {
   const pluginsDir = path.join(
     process.env.LOCALAPPDATA || '',
     'Roblox',
     'Plugins'
   );
-  const dest = path.join(pluginsDir, 'Rojo.rbxm');
+  const dest = path.join(pluginsDir, 'SyncRo.rbxmx');
   if (fs.existsSync(dest)) return;
 
   // 1) Packaged: bundled as extraResource
   let src = process.resourcesPath
-    ? path.join(process.resourcesPath, 'Rojo.rbxm')
+    ? path.join(process.resourcesPath, 'SyncRo.rbxmx')
     : '';
   // 2) Dev: file next to project root
   if (!fs.existsSync(src)) {
-    src = path.resolve(__dirname, '..', '..', '..', 'Rojo.rbxm');
+    src = path.resolve(__dirname, '..', '..', '..', 'SyncRo.rbxmx');
   }
   if (!fs.existsSync(src)) {
-    log.warn('SYSTEM', 'Rojo.rbxm source not found – skipping plugin install');
+    log.warn('SYSTEM', 'SyncRo.rbxmx source not found – skipping plugin install');
     return;
   }
 
   fs.mkdirSync(pluginsDir, { recursive: true });
   fs.copyFileSync(src, dest);
-  log.info('SYSTEM', `Rojo plugin installed → ${dest}`);
+  log.info('SYSTEM', `SyncRo plugin installed → ${dest}`);
 }
 
 /**
@@ -81,7 +81,7 @@ function ensureUserProject() {
     fs.cpSync(templateDir, userProjectDir, { recursive: true });
   }
 
-  // Guarantee Rojo $path directories exist (electron-builder may skip empty dirs)
+  // Guarantee SyncRo $path directories exist (electron-builder may skip empty dirs)
   for (const sub of ['server', 'client', 'shared']) {
     const dir = path.join(userProjectDir, 'src', sub);
     fs.mkdirSync(dir, { recursive: true });
@@ -93,7 +93,7 @@ function ensureUserProject() {
 /** Read project config and return { id, name, path }. */
 function getProject() {
   const projectPath = ensureUserProject();
-  ensureRojoPlugin();
+  ensureSyncRoPlugin();
   const projectJson = path.join(projectPath, 'default.project.json');
   let name = 'EasyRo';
   try {
