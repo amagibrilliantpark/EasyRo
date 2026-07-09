@@ -50,17 +50,6 @@ document.addEventListener('DOMContentLoaded', () => {
     await window.Providers.loadAgents();
     console.log(`[Init] Agents loaded in ${(performance.now() - t2).toFixed(0)}ms`);
 
-    // Update Rojo port display
-    try {
-      const status = await window.electronAPI.instance.status();
-      console.log(`[Init] Instance status:`, status);
-      if (status && status.ports && status.ports.rojo) {
-        window.RightPanel.updatePortDisplay(status.ports.rojo);
-      }
-    } catch (error) {
-      console.error('[Init] Failed to get instance status:', error);
-    }
-
     // Restore saved agent
     const savedAgent = localStorage.getItem('easyro_agent');
     if (savedAgent) {

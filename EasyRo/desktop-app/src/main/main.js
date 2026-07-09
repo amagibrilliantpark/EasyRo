@@ -1,6 +1,7 @@
 const { app, BrowserWindow } = require('electron');
 const { InstanceManager } = require('./instance-manager');
 const { SessionManager } = require('./session-manager');
+const { SyncRoClient } = require('./syncro-client');
 const log = require('./logger');
 const { createWindow, getMainWindow } = require('./window');
 const { getProject } = require('./project');
@@ -9,6 +10,7 @@ const { setupSSEBridge, cleanupAllSSEBridges } = require('./sse-bridge');
 
 const instanceManager = new InstanceManager();
 let sessionManager;
+let syncroClient;
 
 // ── Event loop heartbeat ──
 // Detects if the main process event loop is blocked (causes Windows "not responding")
@@ -39,7 +41,7 @@ app.whenReady().then(async () => {
   log.info('SYSTEM', `Project path: ${project.path}`);
 
   log.info('SYSTEM', 'Initializing session manager...');
-  sessionManager = new SessionManager(project.path);
+  sessionManager = new SessionManager(project.path, null); // SyncRoClient will be set after instance starts
   sessionManager.init();
   log.info('SYSTEM', `Session manager initialized in ${Date.now() - appStart}ms`);
 
@@ -70,7 +72,7 @@ app.whenReady().then(async () => {
 
   try {
     const ports = instanceManager.allocatePorts(project.id);
-    log.info('SYSTEM', `Allocated ports - Rojo: ${ports.rojo}, OpenCode: ${ports.opencode}`);
+    log.info('SYSTEM', `Allocated ports - SyncRo: ${ports.syncro}, OpenCode: ${ports.opencode}`);
 
     // Start instance in background to avoid blocking UI
     log.info('SYSTEM', 'Starting instance initialization in background...');
@@ -81,6 +83,18 @@ app.whenReady().then(async () => {
         await instanceManager.startInstance(project, ports);
         log.info('SYSTEM', `Instance started in ${Date.now() - instanceStart}ms`);
         clearTimeout(startupTimeout);
+
+        // Create SyncRo client after instance starts
+        log.info('SYSTEM', `Creating SyncRo client for port ${ports.syncro}...`);
+        syncroClient = new SyncRoClient(ports.syncro);
+        try {
+          await syncroClient.connect();
+          log.info('SYSTEM', 'SyncRo client connected');
+          // Update SessionManager with SyncRo client
+          sessionManager.syncroClient = syncroClient;
+        } catch (error) {
+          log.warn('SYSTEM', `SyncRo client connection failed: ${error.message} - continuing without SyncRo control`);
+        }
 
         log.info('SYSTEM', `Setting up SSE bridge on port ${ports.opencode}...`);
         setupSSEBridge(project.id, ports.opencode);

@@ -257,7 +257,7 @@ function setupIpcHandlers(instanceManager, sessionManager, project) {
 
   ipcMain.handle("session:restore", async (event, sessionId) => {
     try {
-      sessionManager.restoreFrom(sessionId);
+      await sessionManager.restoreFrom(sessionId);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
