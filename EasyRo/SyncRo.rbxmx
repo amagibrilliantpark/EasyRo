@@ -12,7 +12,7 @@ local Pull = require(script.Pull)
 local UI = require(script.UI)
 local Debug = require(script:WaitForChild(&quot;Debug&quot;))
 
-local savedPort = plugin:GetSetting(&quot;SyncRoPort&quot;) or &quot;4097&quot;
+local savedPort = &quot;5000&quot;
 local connection = Connection.new(&quot;ws://127.0.0.1:&quot; .. savedPort)
 
 local push = Push.new()
@@ -147,6 +147,7 @@ local MAX_RECONNECT_DELAY = 30
 local MAX_RECONNECT_ATTEMPTS = 0
 
 function Connection.new(url)
+	Debug.log(&quot;Connection&quot;, &quot;new() called with URL:&quot;, tostring(url))
 	local self = setmetatable({}, Connection)
 	self.Url = url
 	self.WS = nil
@@ -183,12 +184,15 @@ function Connection:connect()
 		end
 	end)
 
+	Debug.log(&quot;Connection&quot;, &quot;Attempting CreateWebStreamClient with URL:&quot;, tostring(self.Url))
 	local ok, ws = pcall(function()
 		return game:GetService(&quot;HttpService&quot;):CreateWebStreamClient(
 			Enum.WebStreamClientType.WebSocket,
 			{ Url = self.Url }
 		)
 	end)
+
+	Debug.log(&quot;Connection&quot;, &quot;CreateWebStreamClient returned. OK:&quot;, tostring(ok), &quot;Result:&quot;, tostring(ws))
 
 	if not ok then
 		self.Connecting = false
@@ -204,14 +208,32 @@ function Connection:connect()
 	self:_cleanupEvents()
 
 	ws.Opened:Connect(function()
+		Debug.log(&quot;Connection&quot;, &quot;WebSocket opened, connected to&quot;, self.Url)
 		self.Connected = true
 		self.Connecting = false
 		self._reconnectDelay = INITIAL_RECONNECT_DELAY
 		self._reconnectAttempts = 0
-		Debug.log(&quot;Connection&quot;, &quot;WebSocket opened, connected to&quot;, self.Url)
 		if self.OnStatusChange then
 			self.OnStatusChange(&quot;connected&quot;)
 		end
+
+		-- Heartbeat keep-alive. syncro.exe&apos;s server requires an APPLICATION-LEVEL
+		-- {&quot;type&quot;:&quot;pong&quot;} message to keep the connection alive; a raw WebSocket
+		-- pong frame (handled automatically by the engine) is ignored, so the
+		-- server drops idle connections after ~60s and the plugin reconnects.
+		-- Roblox does not surface raw ping frames to Lua, so we send an app-level
+		-- pong on a fixed interval. This MUST start here (in Opened) because
+		-- self.Connected is still false while connect() is running.
+		task.spawn(function()
+			while self.Connected and self.WS == ws do
+				task.wait(15)
+				if self.Connected and self.WS == ws then
+					pcall(function()
+						self:send({ type = &quot;pong&quot; })
+					end)
+				end
+			end
+		end)
 	end)
 
 	local msgConn = ws.MessageReceived:Connect(function(data)
@@ -230,6 +252,7 @@ function Connection:connect()
 	table.insert(self._eventConnections, msgConn)
 
 	local closeConn = ws.Closed:Connect(function()
+		Debug.log(&quot;Connection&quot;, &quot;WebSocket Closed event fired&quot;)
 		self.Connected = false
 		self.Connecting = false
 		Debug.log(&quot;Connection&quot;, &quot;WebSocket closed&quot;)
@@ -242,15 +265,15 @@ function Connection:connect()
 	end)
 	table.insert(self._eventConnections, closeConn)
 
-	local errConn = ws.Error:Connect(function(responseStatusCode, errorMessage)
-		Debug.error(&quot;Connection&quot;, &quot;WebSocket error:&quot;, responseStatusCode, tostring(errorMessage))
-		self.Connected = false
-		self.Connecting = false
-		if self.OnStatusChange then
-			self.OnStatusChange(&quot;disconnected&quot;)
-		end
-	end)
-	table.insert(self._eventConnections, errConn)
+  local errConn = ws.Error:Connect(function(responseStatusCode, errorMessage)
+    Debug.error(&quot;Connection&quot;, &quot;WebSocket error:&quot;, responseStatusCode, tostring(errorMessage))
+    self.Connected = false
+    self.Connecting = false
+    if self.OnStatusChange then
+      self.OnStatusChange(&quot;disconnected&quot;)
+    end
+  end)
+  table.insert(self._eventConnections, errConn)
 end
 
 function Connection:_cleanupEvents()
@@ -349,6 +372,7 @@ function Connection:_handleMessage(msg)
 end
 
 function Connection:_scheduleReconnect()
+	Debug.log(&quot;Connection&quot;, &quot;Scheduling reconnect in&quot;, self._reconnectDelay, &quot;seconds...&quot;)
 	if not self._shouldReconnect then
 		return
 	end
@@ -376,7 +400,7 @@ function Connection:_scheduleReconnect()
 	self._reconnectThread = task.delay(delay, function()
 		self._reconnectThread = nil
 		if not self.Connected and self._shouldReconnect then
-			Debug.log(&quot;Connection&quot;, &quot;Attempting reconnect...&quot;)
+			Debug.log(&quot;Connection&quot;, &quot;Attempting reconnect... Attempt:&quot;, self._reconnectAttempts)
 			self:connect()
 		end
 	end)
@@ -1425,6 +1449,9 @@ function UI.new(plugin, connection)
 	self.ActivityLog = nil
 	self.ActivityEntries = {}
 	self.MaxLogEntries = 50
+	self.ToastGui = nil
+	self.ToastId = 0
+	self.NotifiedStatus = nil
 	return self
 end
 
@@ -1439,7 +1466,7 @@ function UI:create()
 	)
 	self.Button.ClickableWhenViewportHidden = true
 
-	local savedPort = self.Plugin:GetSetting(&quot;SyncRoPort&quot;) or &quot;4097&quot;
+	local savedPort = &quot;5000&quot;
 
 	local widgetInfo = DockWidgetPluginGuiInfo.new(
 		Enum.InitialDockState.Right,
@@ -1734,11 +1761,11 @@ function UI:_createConnectionPanel(parent)
 	portInput.Position = UDim2.new(0, 56, 0, 10)
 	portInput.BackgroundColor3 = COLORS.inputBg
 	portInput.BorderSizePixel = 0
-	portInput.Text = self.Plugin:GetSetting(&quot;SyncRoPort&quot;) or &quot;4097&quot;
+	portInput.Text = &quot;5000&quot;
 	portInput.TextColor3 = COLORS.text
 	portInput.TextSize = 13
 	portInput.Font = Enum.Font.GothamMedium
-	portInput.PlaceholderText = &quot;4097&quot;
+	portInput.PlaceholderText = &quot;5000&quot;
 	portInput.ClearTextOnFocus = false
 	portInput.Visible = false  -- Hide port input for dynamic port support
 	portInput.Parent = panel
@@ -1779,7 +1806,7 @@ function UI:_createConnectionPanel(parent)
 	connectBtn.MouseButton1Click:Connect(function()
 		local port = portInput.Text:match(&quot;%d+&quot;)
 		if not port then
-			port = &quot;4097&quot;
+			port = &quot;5000&quot;
 		end
 		self.Plugin:SetSetting(&quot;SyncRoPort&quot;, port)
 		self.Connection:setUrl(&quot;ws://127.0.0.1:&quot; .. port)
@@ -2006,6 +2033,18 @@ end
 
 function UI:setStatus(status)
 	self.Status = status
+
+	if status ~= self.NotifiedStatus then
+		if status == &quot;connected&quot; then
+			self:showToast(&quot;SyncRo Connected&quot;, &quot;Syncing files in real-time&quot;, COLORS.success)
+		elseif status == &quot;disconnected&quot; then
+			self:showToast(&quot;SyncRo Disconnected&quot;, &quot;Server connection lost&quot;, COLORS.error)
+		elseif status == &quot;paused&quot; then
+			self:showToast(&quot;SyncRo Paused&quot;, &quot;Sync is paused&quot;, COLORS.warning)
+		end
+		self.NotifiedStatus = status
+	end
+
 	if not self.StatusLabel then
 		return
 	end
@@ -2081,12 +2120,152 @@ function UI:setIcon(state)
 	end
 end
 
+function UI:_ensureToastLayer()
+	if self.ToastGui and self.ToastGui.Parent then
+		return self.ToastGui
+	end
+	local CoreGui = game:GetService(&quot;CoreGui&quot;)
+	local gui = Instance.new(&quot;ScreenGui&quot;)
+	gui.Name = &quot;SyncRoToasts&quot;
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.DisplayOrder = 1000
+	gui.Parent = CoreGui
+	self.ToastGui = gui
+	return gui
+end
+
+function UI:showToast(title, message, color)
+	local gui
+	local ok = pcall(function()
+		gui = self:_ensureToastLayer()
+	end)
+	if not ok or not gui then
+		return
+	end
+
+	local TweenService = game:GetService(&quot;TweenService&quot;)
+
+	self.ToastId += 1
+	local myId = self.ToastId
+
+	local existing = gui:FindFirstChild(&quot;Toast&quot;)
+	if existing then
+		existing:Destroy()
+	end
+
+	local card = Instance.new(&quot;Frame&quot;)
+	card.Name = &quot;Toast&quot;
+	card.AnchorPoint = Vector2.new(1, 1)
+	card.Position = UDim2.new(1, 340, 1, -16)
+	card.Size = UDim2.new(0, 300, 0, 62)
+	card.BackgroundColor3 = COLORS.card
+	card.BorderSizePixel = 0
+	card.Parent = gui
+
+	local corner = Instance.new(&quot;UICorner&quot;)
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = card
+
+	local stroke = Instance.new(&quot;UIStroke&quot;)
+	stroke.Color = COLORS.grid
+	stroke.Thickness = 1
+	stroke.Parent = card
+
+	local bar = Instance.new(&quot;Frame&quot;)
+	bar.Name = &quot;Accent&quot;
+	bar.Size = UDim2.new(0, 4, 1, -16)
+	bar.Position = UDim2.new(0, 8, 0, 8)
+	bar.BackgroundColor3 = color
+	bar.BorderSizePixel = 0
+	bar.Parent = card
+
+	local barCorner = Instance.new(&quot;UICorner&quot;)
+	barCorner.CornerRadius = UDim.new(1, 0)
+	barCorner.Parent = bar
+
+	local closeBtn = Instance.new(&quot;TextButton&quot;)
+	closeBtn.Name = &quot;Close&quot;
+	closeBtn.Size = UDim2.new(0, 20, 0, 20)
+	closeBtn.Position = UDim2.new(1, -26, 0, 6)
+	closeBtn.BackgroundTransparency = 1
+	closeBtn.Text = &quot;×&quot;
+	closeBtn.TextColor3 = COLORS.textDim
+	closeBtn.TextSize = 20
+	closeBtn.Font = Enum.Font.GothamBold
+	closeBtn.AutoButtonColor = false
+	closeBtn.Parent = card
+
+	closeBtn.MouseEnter:Connect(function()
+		closeBtn.TextColor3 = COLORS.text
+	end)
+	closeBtn.MouseLeave:Connect(function()
+		closeBtn.TextColor3 = COLORS.textDim
+	end)
+
+	local titleLabel = Instance.new(&quot;TextLabel&quot;)
+	titleLabel.Name = &quot;Title&quot;
+	titleLabel.Size = UDim2.new(1, -66, 0, 18)
+	titleLabel.Position = UDim2.new(0, 22, 0, 12)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Text = title
+	titleLabel.TextColor3 = color
+	titleLabel.TextSize = 14
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Parent = card
+
+	local msgLabel = Instance.new(&quot;TextLabel&quot;)
+	msgLabel.Name = &quot;Message&quot;
+	msgLabel.Size = UDim2.new(1, -40, 0, 16)
+	msgLabel.Position = UDim2.new(0, 22, 0, 32)
+	msgLabel.BackgroundTransparency = 1
+	msgLabel.Text = message
+	msgLabel.TextColor3 = COLORS.textDim
+	msgLabel.TextSize = 12
+	msgLabel.Font = Enum.Font.Gotham
+	msgLabel.TextXAlignment = Enum.TextXAlignment.Left
+	msgLabel.Parent = card
+
+	local slideIn = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+	TweenService:Create(card, slideIn, { Position = UDim2.new(1, -16, 1, -16) }):Play()
+
+	local dismissed = false
+	local function dismiss()
+		if dismissed or not card.Parent then
+			return
+		end
+		dismissed = true
+		local slideOut = TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+		local tween = TweenService:Create(card, slideOut, { Position = UDim2.new(1, 340, 1, -16) })
+		tween.Completed:Connect(function()
+			if card and card.Parent then
+				card:Destroy()
+			end
+		end)
+		tween:Play()
+	end
+
+	closeBtn.Activated:Connect(dismiss)
+
+	task.delay(4, function()
+		if self.ToastId ~= myId then
+			return
+		end
+		dismiss()
+	end)
+end
+
 function UI:destroy()
 	if self.Button then
 		self.Button:Destroy()
 	end
 	if self.Widget then
 		self.Widget:Destroy()
+	end
+	if self.ToastGui then
+		self.ToastGui:Destroy()
+		self.ToastGui = nil
 	end
 end
 

@@ -22,12 +22,34 @@ class SyncRoClient {
         log.info('SYNCRO_CLIENT', 'Connected to SyncRo');
         this.connected = true;
         this.reconnectAttempts = 0;
+        
+        // Heartbeat keep-alive. syncro.exe's server requires an APPLICATION-LEVEL
+        // {"type":"pong"} message to consider the connection alive. A raw WebSocket
+        // pong frame (which `ws` sends automatically) is ignored by the server, which
+        // is why the link was previously dropped after ~30-60s. We both reply to the
+        // server's raw ping frame with an app-level pong AND send one periodically as
+        // a safety net.
+        const sendAppPong = () => {
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            try { this.ws.send(JSON.stringify({ type: 'pong' })); } catch (e) {}
+          }
+        };
+        this.pingInterval = setInterval(sendAppPong, 15000);
+        
         resolve();
+      });
+
+      // The server sends a raw WebSocket ping frame; respond with an app-level pong.
+      this.ws.on('ping', () => {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          try { this.ws.send(JSON.stringify({ type: 'pong' })); } catch (e) {}
+        }
       });
 
       this.ws.on('error', (error) => {
         log.error('SYNCRO_CLIENT', 'Connection error:', error.message);
         this.connected = false;
+        if (this.pingInterval) clearInterval(this.pingInterval);
         if (this.reconnectAttempts === 0) {
           reject(error);
         }
@@ -36,6 +58,7 @@ class SyncRoClient {
       this.ws.on('close', (code, reason) => {
         log.warn('SYNCRO_CLIENT', `Connection closed (code: ${code}, reason: ${reason || 'none'})`);
         this.connected = false;
+        if (this.pingInterval) clearInterval(this.pingInterval);
       });
 
       this.ws.on('message', (data) => {
