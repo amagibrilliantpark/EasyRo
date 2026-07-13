@@ -16,7 +16,8 @@ function ensureSyncRoPlugin() {
     'Plugins'
   );
   const dest = path.join(pluginsDir, 'SyncRo.rbxmx');
-  if (fs.existsSync(dest)) return;
+  // Always copy so updates are applied
+  // if (fs.existsSync(dest)) return;
 
   // 1) Packaged: bundled as extraResource
   let src = process.resourcesPath
