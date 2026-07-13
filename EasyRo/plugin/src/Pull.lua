@@ -452,18 +452,9 @@ function Pull:start()
 	Debug.log("Pull", "Starting Studio watcher")
 
 	local services = {
-		game:GetService("Workspace"),
 		game:GetService("ServerScriptService"),
 		game:GetService("ReplicatedStorage"),
-		game:GetService("StarterGui"),
-		game:GetService("StarterPack"),
 		game:GetService("StarterPlayer"),
-		game:GetService("ServerStorage"),
-		game:GetService("ReplicatedFirst"),
-		game:GetService("Lighting"),
-		game:GetService("SoundService"),
-		game:GetService("Teams"),
-		game:GetService("Players"),
 	}
 
 	local SEND_INTERVAL = 0.5
