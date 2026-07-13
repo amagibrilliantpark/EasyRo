@@ -8,6 +8,11 @@
   "scripts": {
     "start": "electron .",
     "dev": "electron . --dev",
+    "build:plugin": "node ../plugin/build.js",
+    "prebuild": "node ../plugin/build.js",
+    "prebuild:win": "node ../plugin/build.js",
+    "prebuild:mac": "node ../plugin/build.js",
+    "prebuild:linux": "node ../plugin/build.js",
     "build": "electron-builder --win --mac --linux",
     "build:win": "electron-builder --win",
     "build:mac": "electron-builder --mac",
