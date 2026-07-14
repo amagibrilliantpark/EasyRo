@@ -72,6 +72,7 @@ class Logger {
     try {
       if (bufferToFlush.length > 0) {
         await fs.promises.appendFile(this.logFile, bufferToFlush.join(''), 'utf-8');
+        this._rotateIfNeeded();
       }
     } catch (error) {
       // Silently ignore write errors to avoid cascading failures

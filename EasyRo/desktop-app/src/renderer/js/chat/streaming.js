@@ -25,7 +25,6 @@ function appendStreamingText(text) {
     container.appendChild(streamingTargetMsg);
     streamingDeltaCount = 0;
     streamingRenderThreshold = 0;
-    console.log(`[Perf] Streaming: new message element created`);
   }
 
   Chat.Indicators.hideThinking();
@@ -38,8 +37,6 @@ function appendStreamingText(text) {
     streamingRenderPending = true;
     requestAnimationFrame(flushStreamingRender);
   }
-
-  container.scrollTop = container.scrollHeight;
 }
 
 /** Optimized render: only full re-render when code blocks might be involved */
@@ -73,6 +70,11 @@ function flushStreamingRender() {
   }
   
   addStreamingCursor(streamingTargetMsg);
+
+  // Scroll once per animation frame instead of on every incoming delta,
+  // avoiding a forced synchronous layout for each streamed token.
+  const container = streamingTargetMsg.parentNode;
+  if (container) container.scrollTop = container.scrollHeight;
 }
 
 /** Clean up streaming state when the response is complete. */
@@ -80,7 +82,6 @@ function finalizeStreaming() {
   if (!streamingTargetMsg || !streamingTargetMsg.parentNode) return;
   if (!streamingTextAccum) return;
 
-  console.log(`[Perf] Streaming finalized: ${streamingDeltaCount} deltas, ${streamingTextAccum.length} chars`);
   removeStreamingCursor();
   resetStreamingAccum();
 }

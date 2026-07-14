@@ -14,40 +14,35 @@ function renderMessages(messages) {
   emptyState.classList.remove('active');
 
   const msgList = messages.value || messages;
-  console.log('[RevertDebug] renderMessages called, msgList.length:', msgList.length);
 
+  // Batch all bubbles into a single fragment so the browser performs one
+  // layout/paint instead of one forced reflow per message (scrollTop reads).
+  const fragment = document.createDocumentFragment();
   for (const msg of msgList) {
     const role = msg.info ? msg.info.role : 'assistant';
     const id = msg.info ? msg.info.id : null;
-    console.log('[RevertDebug] renderMessages msg:', { role, id, hasParts: !!msg.parts });
     if (msg.parts) {
       for (const part of msg.parts) {
         if (part.type === 'text' && part.text) {
           // Skip auto-compaction continuation messages (official OpenCode flag)
           if (part.metadata && part.metadata.compaction_continue) {
-            console.log('[RevertDebug] Skipping compaction_continue message');
             continue;
           }
           if (part.synthetic) {
-            console.log('[RevertDebug] Skipping synthetic message');
             continue;
           }
-          appendMessage(role, part.text, id);
+          fragment.appendChild(createMessageElement(role, part.text, id));
         }
       }
     }
   }
 
+  container.appendChild(fragment);
   container.scrollTop = container.scrollHeight;
 }
 
-/** Append a single message bubble to the chat area. */
-function appendMessage(role, text, messageId = null) {
-  console.log('[RevertDebug] appendMessage called:', { role, messageId, textLen: text?.length });
-  const container = Utils.$('chatArea');
-  const emptyState = Utils.$('emptyState');
-  emptyState.classList.remove('active');
-
+/** Build a single message bubble element (no DOM insertion / scroll). */
+function createMessageElement(role, text, messageId = null) {
   const msg = document.createElement('div');
   msg.className = 'message ' + (role === 'user' ? 'user-message' : 'ai-message');
   if (messageId) msg.dataset.messageId = messageId;
@@ -61,14 +56,21 @@ function appendMessage(role, text, messageId = null) {
       revertBtn.title = 'Revert to this point';
       revertBtn.addEventListener('click', () => window.Modals.showRevertModal(messageId, text));
       msg.appendChild(revertBtn);
-      console.log('[RevertDebug] Revert button ADDED for messageId:', messageId);
-    } else {
-      console.log('[RevertDebug] NO revert button - messageId is null/empty');
     }
   } else {
     renderTextContent(msg, text);
   }
 
+  return msg;
+}
+
+/** Append a single message bubble to the chat area. */
+function appendMessage(role, text, messageId = null) {
+  const container = Utils.$('chatArea');
+  const emptyState = Utils.$('emptyState');
+  emptyState.classList.remove('active');
+
+  const msg = createMessageElement(role, text, messageId);
   container.appendChild(msg);
   container.scrollTop = container.scrollHeight;
   return msg;
@@ -139,4 +141,4 @@ function renderTextContent(container, text) {
 }
 
 window.Chat = window.Chat || {};
-window.Chat.Messages = { renderMessages, appendMessage, renderTextContent, renderInlineMarkdown };
+window.Chat.Messages = { renderMessages, appendMessage, createMessageElement, renderTextContent, renderInlineMarkdown };

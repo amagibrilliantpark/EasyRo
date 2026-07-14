@@ -20,8 +20,6 @@ function showQuestionModal(properties) {
     return;
   }
 
-  console.log(`[UI] Question modal opened, ${properties.questions.length} questions`);
-
   if (pendingQuestion && questionModalOpen) {
     const oldRequestID = getQuestionRequestID();
     if (oldRequestID) {

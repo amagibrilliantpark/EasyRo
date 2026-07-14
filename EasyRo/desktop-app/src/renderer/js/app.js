@@ -12,48 +12,22 @@ function debounce(func, wait) {
 }
 
 /** Main application entry point — wires up all UI event listeners. */
-const _appStartTime = performance.now();
-console.log(`[Init] DOMContentLoaded fired at ${(performance.now() - _appStartTime).toFixed(0)}ms`);
-
 document.addEventListener('DOMContentLoaded', () => {
-  console.log(`[Init] DOMContentLoaded handler start at ${(performance.now() - _appStartTime).toFixed(0)}ms`);
-
-  console.log(`[Init] Initializing SSE...`);
   window.SSE.initSSE();
-  console.log(`[Init] SSE initialized`);
-
-  console.log(`[Init] Initializing question modal...`);
   window.Modals.initQuestionModal();
-  console.log(`[Init] Initializing revert modal...`);
   window.Modals.initRevertModal();
-  console.log(`[Init] Modals initialized`);
 
   window.electronAPI.onProjectReady(async (data) => {
-    const readyTime = performance.now() - _appStartTime;
-    console.log(`[Init] ✅ project:ready received at ${readyTime.toFixed(0)}ms, project: ${data.name}`);
-
     const sidebarStatusEl = Utils.$('sidebarStatus');
     if (sidebarStatusEl) sidebarStatusEl.textContent = 'Ready — ' + data.name;
 
-    console.log(`[Init] Loading sessions...`);
-    const t0 = performance.now();
     await window.Sessions.loadSessions();
-    console.log(`[Init] Sessions loaded in ${(performance.now() - t0).toFixed(0)}ms`);
-
-    console.log(`[Init] Loading providers...`);
-    const t1 = performance.now();
     await window.Providers.loadProviders();
-    console.log(`[Init] Providers loaded in ${(performance.now() - t1).toFixed(0)}ms`);
-
-    console.log(`[Init] Loading agents...`);
-    const t2 = performance.now();
     await window.Providers.loadAgents();
-    console.log(`[Init] Agents loaded in ${(performance.now() - t2).toFixed(0)}ms`);
 
     // Restore saved agent
     const savedAgent = localStorage.getItem('easyro_agent');
     if (savedAgent) {
-      console.log(`[Init] Restoring saved agent: ${savedAgent}`);
       window.App.currentAgent = savedAgent;
       const modeSelector = Utils.$('modeSelector');
       if (modeSelector) modeSelector.querySelector('span').textContent = savedAgent.charAt(0).toUpperCase() + savedAgent.slice(1);
@@ -61,8 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
         item.classList.toggle('selected', item.dataset.value === savedAgent);
       });
     }
-
-    console.log(`[Init] ✅ App fully ready in ${(performance.now() - _appStartTime).toFixed(0)}ms`);
   });
 
   window.electronAPI.onProjectError((data) => {
@@ -72,16 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // ── Startup status monitor ──
-  let _lastStatusText = '';
   let _statusCheckCount = 0;
   const _statusMonitor = setInterval(() => {
     const statusEl = Utils.$('sidebarStatus');
     if (!statusEl) return;
     const currentText = statusEl.textContent;
-    if (currentText !== _lastStatusText) {
-      console.log(`[Init] Status changed: "${_lastStatusText}" → "${currentText}" at ${(performance.now() - _appStartTime).toFixed(0)}ms`);
-      _lastStatusText = currentText;
-    }
     _statusCheckCount++;
     // If stuck at "Starting..." for more than 15 seconds, log warning
     if (_statusCheckCount > 30 && currentText.includes('Starting')) {
@@ -96,7 +63,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Stop monitoring after app is ready or after 60 seconds
     if (currentText.includes('Ready') || _statusCheckCount > 120) {
       clearInterval(_statusMonitor);
-      console.log(`[Init] Status monitor stopped at ${(performance.now() - _appStartTime).toFixed(0)}ms`);
     }
   }, 500);
 
@@ -109,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
   
   sidebarToggle.addEventListener('click', () => {
     sidebar.classList.toggle('collapsed');
-    console.log(`[UI] Sidebar ${sidebar.classList.contains('collapsed') ? 'collapsed' : 'expanded'}`);
     if (sidebar.classList.contains('collapsed')) {
       searchBar.classList.remove('active');
       sidebarLogo.classList.remove('hidden');
@@ -225,11 +190,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const newChatBtn = Utils.$('newChatBtn');
   newChatBtn.addEventListener('click', async (e) => {
     e.stopPropagation();
-    console.log(`[UI] New chat button clicked`);
 
     // Save current session's files
     if (window.App.currentSession) {
-      console.log(`[Session] Saving current session before new chat: ${window.App.currentSession}`);
       try { await window.electronAPI.session.saveCurrent(); } catch (e) {}
     }
 
@@ -252,10 +215,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   btnSend.addEventListener('click', () => {
     if (window.App.isProcessing) {
-      console.log(`[UI] Stop button clicked`);
       window.Chat.stopGeneration();
     } else {
-      console.log(`[UI] Send button clicked`);
       window.Chat.sendMessage();
     }
   });
@@ -263,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
   promptInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      console.log(`[UI] Enter key pressed, sending message`);
       window.Chat.sendMessage();
     }
   });
@@ -277,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const wasOpen = modePopup.classList.contains('active');
     closeAllPopups();
     if (!wasOpen) modePopup.classList.add('active');
-    console.log(`[UI] Mode selector ${wasOpen ? 'closed' : 'opened'}`);
   });
 
   modePopup.querySelectorAll('.popup-item').forEach(item => {
@@ -289,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
       modePopup.classList.remove('active');
       window.App.currentAgent = item.dataset.value;
       localStorage.setItem('easyro_agent', item.dataset.value);
-      console.log(`[UI] Agent changed to: ${item.dataset.value}`);
     });
   });
 

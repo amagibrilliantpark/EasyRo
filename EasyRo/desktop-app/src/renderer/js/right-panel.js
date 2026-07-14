@@ -57,6 +57,7 @@ function updateTodoList(todos) {
 
   if (!todos || todos.length === 0) return;
 
+  const frag = document.createDocumentFragment();
   for (const todo of todos) {
     const item = document.createElement('div');
     item.className = 'rp-todo-item';
@@ -75,8 +76,9 @@ function updateTodoList(todos) {
 
     item.appendChild(check);
     item.appendChild(text);
-    container.appendChild(item);
+    frag.appendChild(item);
   }
+  container.appendChild(frag);
 }
 
 /** Clear all todo items from the right panel. */
