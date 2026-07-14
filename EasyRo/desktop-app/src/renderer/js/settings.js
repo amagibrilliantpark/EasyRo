@@ -9,12 +9,10 @@ window.Settings = {
     settingsBtn.addEventListener('click', () => {
       settingsPage.classList.remove('hidden');
       document.querySelector('.settings-section-title[data-target="generalCard"]').click();
-      console.log(`[UI] Settings page opened`);
     });
 
     settingsClose.addEventListener('click', () => {
       settingsPage.classList.add('hidden');
-      console.log(`[UI] Settings page closed`);
     });
 
     // Toggle cards on section title click
@@ -32,7 +30,6 @@ window.Settings = {
           document.querySelectorAll('.settings-right-content').forEach(c => c.classList.add('hidden'));
           targetContent.classList.remove('hidden');
           title.classList.add('active');
-          console.log(`[UI] Content ${targetContentId} activated`);
         }
       });
     });
@@ -50,7 +47,6 @@ window.Settings = {
       if (window.electronAPI?.window?.setTheme) {
         window.electronAPI.window.setTheme(theme);
       }
-      console.log(`[UI] Theme set to: ${theme}`);
     }
 
     const savedTheme = localStorage.getItem('easyro_theme') || 'light';
@@ -68,7 +64,6 @@ window.Settings = {
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !settingsPage.classList.contains('hidden')) {
         settingsPage.classList.add('hidden');
-        console.log(`[UI] Settings page closed via Escape`);
       }
     });
   }

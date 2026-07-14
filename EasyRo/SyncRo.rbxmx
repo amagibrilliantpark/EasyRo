@@ -421,7 +421,6 @@ Push.__index = Push
 local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
 
 local SERVICE_MAP = {
-	DataModel = game:GetService(&quot;DataModel&quot;),
 	ServerScriptService = game:GetService(&quot;ServerScriptService&quot;),
 	ServerStorage = game:GetService(&quot;ServerStorage&quot;),
 	ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;),
@@ -517,9 +516,6 @@ function Push:applyFileRemoved(relativePath)
 		end
 	end
 	self.InstanceMap[relativePath] = nil
-end
-
-function Push:applyDirAdded(relativePath)
 end
 
 function Push:applyDirRemoved(relativePath)

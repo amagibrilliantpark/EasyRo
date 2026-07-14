@@ -1,7 +1,6 @@
 /** Fetch all sessions from the backend. */
 async function loadSessions() {
   const t0 = performance.now();
-  console.log(`[Session] loadSessions START`);
   try {
     const response = await window.electronAPI.session.list();
     const rawSessions = response.value || response || [];
@@ -14,9 +13,6 @@ async function loadSessions() {
     window.App.sessions = allSessions;
     window.App.sessionsCacheTime = Date.now();
     renderSessionList();
-    console.log(
-      `[Session] loadSessions DONE in ${(performance.now() - t0).toFixed(0)}ms, count: ${allSessions.length}`,
-    );
   } catch (error) {
     console.error(
       `[Session] loadSessions FAILED in ${(performance.now() - t0).toFixed(0)}ms:`,
@@ -48,16 +44,26 @@ function renderSessionList() {
   const normalContainer = Utils.$("normalSessions");
   const attachedLabel = Utils.$("attachedLabel");
 
+  // Single pass + fragments: one reflow per list instead of one per card.
+  const attachedFrag = document.createDocumentFragment();
+  const normalFrag = document.createDocumentFragment();
+  let attachedCount = 0;
+
+  for (const s of window.App.sessions) {
+    if (s.attached) {
+      attachedFrag.appendChild(createSessionCard(s));
+      attachedCount++;
+    } else {
+      normalFrag.appendChild(createSessionCard(s));
+    }
+  }
+
+  attachedLabel.style.display = attachedCount > 0 ? "block" : "none";
+
   attachedContainer.innerHTML = "";
   normalContainer.innerHTML = "";
-
-  const attached = window.App.sessions.filter((s) => s.attached);
-  const normal = window.App.sessions.filter((s) => !s.attached);
-
-  attachedLabel.style.display = attached.length > 0 ? "block" : "none";
-
-  attached.forEach((s) => attachedContainer.appendChild(createSessionCard(s)));
-  normal.forEach((s) => normalContainer.appendChild(createSessionCard(s)));
+  attachedContainer.appendChild(attachedFrag);
+  normalContainer.appendChild(normalFrag);
 }
 
 /** Build a session card element with title, context menu, and click handler. */
@@ -134,15 +140,10 @@ function createSessionCard(session) {
 async function selectSession(sessionId) {
   if (_switchingSession) return;
   _switchingSession = true;
-  const t0 = performance.now();
-  console.log(`[Session] selectSession START: ${sessionId}`);
 
   try {
     // 0. Abort in-progress generation
     if (window.App.isProcessing && window.App.currentSession) {
-      console.log(
-        `[Session] Aborting previous session: ${window.App.currentSession}`,
-      );
       try {
         await window.electronAPI.session.abort(window.App.currentSession);
         await new Promise((r) => setTimeout(r, 300));
@@ -152,14 +153,7 @@ async function selectSession(sessionId) {
 
     // 1. Save current session's files
     if (window.App.currentSession && window.App.currentSession !== sessionId) {
-      console.log(
-        `[Session] Saving current session: ${window.App.currentSession}`,
-      );
-      const saveStart = performance.now();
       const saveResult = await window.electronAPI.session.saveCurrent();
-      console.log(
-        `[Session] Save done in ${(performance.now() - saveStart).toFixed(0)}ms`,
-      );
       if (!saveResult.success) {
         console.error("[Session] Failed to save session:", saveResult.error);
         return;
@@ -167,12 +161,7 @@ async function selectSession(sessionId) {
     }
 
     // 2. Restore new session's files
-    console.log(`[Session] Restoring session: ${sessionId}`);
-    const restoreStart = performance.now();
     const restoreResult = await window.electronAPI.session.restore(sessionId);
-    console.log(
-      `[Session] Restore done in ${(performance.now() - restoreStart).toFixed(0)}ms`,
-    );
     if (!restoreResult.success) {
       console.error(
         "[Session] Failed to restore session:",
@@ -198,15 +187,10 @@ async function selectSession(sessionId) {
 
     // 4. Load todo and messages
     try {
-      console.log(`[Session] Loading todos...`);
-      const todoStart = performance.now();
       const todoResponse = await window.electronAPI.session.todo(sessionId);
       if (window.App.currentSession !== sessionId) return;
       const todos = todoResponse.value || todoResponse || [];
       window.RightPanel.updateTodoList(todos);
-      console.log(
-        `[Session] Todos loaded in ${(performance.now() - todoStart).toFixed(0)}ms, count: ${todos.length}`,
-      );
     } catch (error) {
       console.warn(`[Session] Todo load failed:`, error.message);
       if (window.App.currentSession === sessionId) {
@@ -215,14 +199,8 @@ async function selectSession(sessionId) {
     }
 
     try {
-      console.log(`[Session] Loading messages...`);
-      const msgStart = performance.now();
       const messages = await window.electronAPI.session.messages(sessionId);
       if (window.App.currentSession !== sessionId) return;
-      const msgList = messages.value || messages;
-      console.log(
-        `[Session] Messages loaded in ${(performance.now() - msgStart).toFixed(0)}ms, count: ${msgList.length}`,
-      );
       window.Chat.renderMessages(messages);
 
       // Aggregate tokens from assistant messages
@@ -233,10 +211,6 @@ async function selectSession(sessionId) {
     } catch (error) {
       console.warn(`[Session] Messages load failed:`, error.message);
     }
-
-    console.log(
-      `[Session] selectSession DONE in ${(performance.now() - t0).toFixed(0)}ms`,
-    );
   } finally {
     _switchingSession = false;
   }
@@ -245,7 +219,6 @@ async function selectSession(sessionId) {
 /** Delete a session and clean up UI if it was the active one. */
 async function deleteSession(sessionId) {
   const t0 = performance.now();
-  console.log(`[Session] deleteSession START: ${sessionId}`);
   try {
     if (window.App.isProcessing && window.App.currentSession === sessionId) {
       try {
@@ -272,9 +245,6 @@ async function deleteSession(sessionId) {
       window.RightPanel.clearTodoList();
       window.RightPanel.updateContextStats(null);
     }
-    console.log(
-      `[Session] deleteSession DONE in ${(performance.now() - t0).toFixed(0)}ms`,
-    );
   } catch (error) {
     console.error(
       `[Session] deleteSession FAILED in ${(performance.now() - t0).toFixed(0)}ms:`,
@@ -286,8 +256,6 @@ async function deleteSession(sessionId) {
 
 /** Update a session's title on the backend and refresh the sidebar. */
 async function renameSession(sessionId, title) {
-  const t0 = performance.now();
-  console.log(`[Session] renameSession: ${sessionId} → "${title}"`);
   try {
     await window.electronAPI.session.update(sessionId, { title });
     const session = window.App.sessions.find((s) => s.id === sessionId);
@@ -298,9 +266,6 @@ async function renameSession(sessionId, title) {
       }
     }
     renderSessionList();
-    console.log(
-      `[Session] renameSession DONE in ${(performance.now() - t0).toFixed(0)}ms`,
-    );
   } catch (error) {
     console.error(`[Session] renameSession FAILED:`, error.message);
     if (window.App.debug) console.error("Failed to rename session:", error);
@@ -379,15 +344,11 @@ let _switchingSession = false;
 /** Get the current session ID, or create a new one if none exists. */
 async function ensureSession() {
   if (window.App.currentSession) {
-    console.log(
-      `[Session] ensureSession: using existing ${window.App.currentSession}`,
-    );
     return window.App.currentSession;
   }
   if (_sessionCreatePromise) return _sessionCreatePromise;
 
   const t0 = performance.now();
-  console.log(`[Session] ensureSession: creating new session`);
 
   _sessionCreatePromise = (async () => {
     try {
