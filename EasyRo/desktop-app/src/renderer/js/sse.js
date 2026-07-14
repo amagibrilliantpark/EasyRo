@@ -12,20 +12,6 @@ function initSSE() {
     const props = data.properties || {};
     const sid = props.sessionID || props.id || "";
     const isCurrent = sid === window.App.currentSession;
-    const elapsed = window.SSE.lastSendMessageTime
-      ? Date.now() - window.SSE.lastSendMessageTime
-      : -1;
-
-    if (
-      isCurrent ||
-      data.type === "session.status" ||
-      data.type === "session.idle" ||
-      data.type === "session.error"
-    ) {
-      console.log(
-        `[Perf] 📨 SSE event: ${data.type} | session: ${sid} | elapsed: ${elapsed}ms`,
-      );
-    }
 
     switch (data.type) {
       case "message.part.updated":
@@ -70,13 +56,6 @@ function handlePartUpdate(properties) {
   if (!properties || isCompacting) return;
   const { part, sessionID } = properties;
   if (!part || sessionID !== window.App.currentSession) return;
-
-  const elapsed = window.SSE.lastSendMessageTime
-    ? Date.now() - window.SSE.lastSendMessageTime
-    : -1;
-  console.log(
-    `[Perf] 🔧 PartUpdate: type=${part.type}, id=${part.id}, elapsed=${elapsed}ms`,
-  );
 
   if (
     (part.type === "reasoning" ||
@@ -129,12 +108,6 @@ function handlePartDelta(properties) {
 function handleMessageUpdated(properties) {
   if (!properties) return;
   const info = properties.info || properties;
-  const elapsed = window.SSE.lastSendMessageTime
-    ? Date.now() - window.SSE.lastSendMessageTime
-    : -1;
-  console.log(
-    `[Perf] ✅ MessageUpdated: completed=${!!(info.time && info.time.completed)}, elapsed=${elapsed}ms`,
-  );
   if (info.time && info.time.completed) {
     window.Chat.finalizeStreaming();
   }
@@ -152,10 +125,6 @@ function handleSessionStatus(properties) {
     typeof statusObj === "string"
       ? statusObj
       : (statusObj && statusObj.type) || "";
-  const elapsed = window.SSE.lastSendMessageTime
-    ? Date.now() - window.SSE.lastSendMessageTime
-    : -1;
-  console.log(`[Perf] 🔄 SessionStatus: ${status}, elapsed=${elapsed}ms`);
 
   const statusEl = Utils.$("sidebarStatus");
   if (!statusEl) return;
@@ -208,11 +177,6 @@ function handleSessionCompacted(properties) {
 /** Finalize streaming and reset UI when the session becomes idle. */
 function handleSessionIdle(properties) {
   if (isCompacting) return;
-
-  const elapsed = window.SSE.lastSendMessageTime
-    ? Date.now() - window.SSE.lastSendMessageTime
-    : -1;
-  console.log(`[Perf] 💤 SessionIdle: elapsed=${elapsed}ms`);
 
   if (properties && window.App.currentSession) {
     const eventSession = properties.sessionID || properties.id;
@@ -284,15 +248,23 @@ function handleSessionIdle(properties) {
         if (textMsgList.length > existingMsgs.length) {
           const startIndex = existingMsgs.length;
           const newMsgs = textMsgList.slice(startIndex);
+          const chatArea = Utils.$("chatArea");
+          const emptyState = Utils.$("emptyState");
+          if (emptyState) emptyState.classList.remove("active");
+          const frag = document.createDocumentFragment();
           for (const msg of newMsgs) {
             const role = msg.info ? msg.info.role : "assistant";
             const id = msg.info ? msg.info.id : null;
             for (const part of msg.parts) {
               if (part.type === "text" && part.text) {
-                window.Chat.appendMessage(role, part.text, id);
+                frag.appendChild(
+                  window.Chat.Messages.createMessageElement(role, part.text, id),
+                );
               }
             }
           }
+          chatArea.appendChild(frag);
+          chatArea.scrollTop = chatArea.scrollHeight;
         }
       })
       .catch((err) => {
@@ -309,10 +281,6 @@ function handleSessionIdle(properties) {
 /** Handle dedicated session.error events from the backend. */
 function handleSessionError(properties) {
   if (!properties) return;
-  const elapsed = window.SSE.lastSendMessageTime
-    ? Date.now() - window.SSE.lastSendMessageTime
-    : -1;
-  console.log(`[Perf] ❌ SessionError: elapsed=${elapsed}ms`, properties);
   const eventSession = properties.sessionID || properties.id;
   if (eventSession && eventSession !== window.App.currentSession) return;
 
@@ -380,7 +348,6 @@ function handleTodoUpdated(properties) {
       todoList.classList.add("active");
       const arrow = todoHeader?.querySelector(".todo-arrow");
       if (arrow) arrow.textContent = "\u25BC";
-      console.log(`[UI] Todo list auto-opened, ${todos.length} items`);
     }
   }
 }

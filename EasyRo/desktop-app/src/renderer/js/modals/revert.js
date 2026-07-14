@@ -4,7 +4,6 @@ let pendingRevertMessageText = '';
 
 /** Show the revert confirmation modal with message preview. */
 function showRevertModal(messageId, messageText) {
-  console.log(`[UI] Revert modal opened for message: ${messageId}`);
   pendingRevertMessageId = messageId;
   pendingRevertMessageText = messageText;
 
@@ -32,7 +31,6 @@ async function executeRevert() {
   if (!pendingRevertMessageId || !window.App.currentSession) return;
 
   const t0 = performance.now();
-  console.log(`[UI] Executing revert for message: ${pendingRevertMessageId}`);
 
   try {
     await window.electronAPI.session.revert(window.App.currentSession, pendingRevertMessageId);
@@ -57,7 +55,6 @@ async function executeRevert() {
     }
 
     closeRevertModal();
-    console.log(`[UI] Revert completed in ${(performance.now() - t0).toFixed(0)}ms`);
   } catch (error) {
     console.error(`[UI] Revert FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error);
     closeRevertModal();

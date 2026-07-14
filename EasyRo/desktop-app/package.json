@@ -1,6 +1,6 @@
 {
   "name": "easyro-desktop",
-  "version": "2.0.0-beta",
+  "version": "2.0.0",
   "description": "EasyRo - Roblox Studio AI Assistant",
   "main": "src/main/main.js",
   "author": "EasyRo",
@@ -27,6 +27,7 @@
     "files": [
       "src/**/*",
       "!src/**/*.map",
+      "!src/**/*.log",
       "!node_modules/.cache/**/*"
     ],
     "extraResources": [
