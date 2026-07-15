@@ -4,10 +4,8 @@
     border: 1px solid var(--border-color);
     border-radius: 14px;
     box-shadow:
-        0 4px 24px var(--shadow-color),
-        0 1px 4px var(--shadow-color);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+        0 2px 12px var(--shadow-color),
+        0 1px 2px var(--shadow-color);
     padding: 20px 0 0 0;
     position: relative;
     min-height: 90px;
@@ -284,10 +282,8 @@
     border: 1px solid var(--border-color);
     border-radius: 14px;
     box-shadow:
-        0 4px 24px var(--shadow-color),
-        0 1px 4px var(--shadow-color);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+        0 2px 12px var(--shadow-color),
+        0 1px 2px var(--shadow-color);
     padding: 20px;
     position: relative;
     min-width: 320px;
@@ -382,26 +378,22 @@
     position: absolute;
     inset: 0;
     background: var(--overlay-bg);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
 }
 
 .provider-modal {
     position: relative;
     width: 100%;
-    max-width: 480px;
+    max-width: 620px;
     background: var(--bg-modal);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
     border-radius: 20px;
     box-shadow:
-        0 20px 60px var(--shadow-color),
-        0 8px 24px var(--shadow-color);
+        0 10px 30px var(--shadow-color),
+        0 4px 12px var(--shadow-color);
     border: 1px solid var(--border-color);
-    padding: 24px;
+    padding: 20px;
     margin: 20px;
-    height: 560px;
-    max-height: 80vh;
+    height: 420px;
+    max-height: 70vh;
     display: flex;
     flex-direction: column;
 }
@@ -409,7 +401,7 @@
 .provider-modal-header {
     display: flex;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     flex-shrink: 0;
     padding-right: 36px;
 }
@@ -449,11 +441,9 @@
 /* Provider list */
 .provider-list {
     flex: 1;
-    overflow-y: auto;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    min-height: 0;
     align-content: flex-start;
     padding: 4px 0;
 }
@@ -526,7 +516,6 @@
     flex-direction: column;
     gap: 16px;
     flex: 1;
-    min-height: 0;
 }
 .provider-detail.active {
     display: flex;
@@ -657,7 +646,6 @@
 }
 .provider-key-input:focus {
     border-color: var(--accent-color);
-    box-shadow: 0 4px 20px var(--accent-glass);
 }
 
 .provider-detail-actions {

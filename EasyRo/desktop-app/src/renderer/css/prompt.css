@@ -6,8 +6,7 @@
   background: var(--bg-panel);
   border: 1px solid var(--border-color);
   border-radius: 14px; padding: 0 12px 0 16px; gap: 0; min-height: 90px;
-  box-shadow: 0 4px 24px var(--shadow-color), 0 1px 4px var(--shadow-color);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 12px var(--shadow-color), 0 1px 2px var(--shadow-color);
   position: relative;
 }
 
@@ -68,7 +67,7 @@ body[data-theme="dark"] .btn-send.stop-mode { background: #b8450a; }
 .popup-menu {
   display: none; position: absolute; bottom: calc(100% + 10px); left: 0;
   background: var(--bg-modal); border: 1px solid var(--border-color); border-radius: 12px; padding: 6px;
-  box-shadow: 0 8px 32px var(--shadow-color), 0 2px 8px var(--shadow-color);
+  box-shadow: 0 4px 18px var(--shadow-color), 0 2px 6px var(--shadow-color);
   z-index: 200; min-width: 140px;
 }
 
