@@ -150,8 +150,6 @@ body[data-theme="dark"] .settings-section-title.active {
   border-radius: 8px;
   border: 1px solid var(--border-color);
   background: var(--bg-input);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   color: var(--text-primary);
   font-family: 'JetBrains Mono', monospace;
   font-size: 18px;
@@ -200,8 +198,6 @@ body[data-theme="dark"] .about-description {
   border-radius: 8px;
   border: 1px solid var(--border-color);
   background: var(--bg-input);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   color: var(--text-primary);
   font-family: 'JetBrains Mono', monospace;
   font-size: 18px;
