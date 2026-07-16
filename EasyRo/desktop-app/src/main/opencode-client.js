@@ -178,6 +178,9 @@ class OpenCodeClient {
       ...(code && { code }),
     });
   }
+  deleteAuth(id) {
+    return this.request("DELETE", `/auth/${id}`);
+  }
   listAgents() {
     return this.request("GET", "/agent");
   }
