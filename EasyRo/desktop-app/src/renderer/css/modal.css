@@ -445,17 +445,19 @@
     flex-wrap: wrap;
     gap: 6px;
     align-content: flex-start;
-    padding: 4px 0;
+    padding: 4px 8px 4px 0;
+    overflow-y: auto;
+    min-height: 0;
 }
 .provider-list::-webkit-scrollbar {
-    width: 3px;
+    width: 8px;
 }
 .provider-list::-webkit-scrollbar-track {
     background: transparent;
 }
 .provider-list::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
-    border-radius: 2px;
+    border-radius: 4px;
 }
 
 .provider-item {
@@ -691,7 +693,7 @@
     padding-top: 8px;
 }
 
-.provider-btn-cancel {
+.provider-btn-disconnect {
     padding: 10px 20px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
@@ -702,9 +704,21 @@
     color: var(--text-secondary);
     cursor: pointer;
     transition: background 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
-.provider-btn-cancel:hover {
+.provider-btn-disconnect:hover {
     background: var(--accent-hover);
+}
+.provider-btn-disconnect:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.provider-btn-disconnect.loading svg {
+    width: 14px;
+    height: 14px;
+    animation: provider-spin 0.8s linear infinite;
 }
 
 .provider-btn-connect {
@@ -774,7 +788,7 @@
     color: var(--color-danger);
     cursor: pointer;
     transition: background 0.12s, opacity 0.12s;
-    display: none;
+    display: flex;
     align-items: center;
     gap: 8px;
 }

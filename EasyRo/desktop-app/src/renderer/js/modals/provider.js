@@ -56,6 +56,36 @@
     return { name: id.charAt(0).toUpperCase() + id.slice(1), color: "#666" };
   }
 
+  /** A provider is "custom" (user-added) when OpenCode doesn't ship a built-in
+   *  auth method for it — i.e. it isn't in the auth-methods list. Built-in
+   *  defaults stay in that list, so they can be disconnected but not deleted. */
+  function isCustomProvider(id) {
+    return !PM.authMethods || !PM.authMethods[id];
+  }
+
+  /** Custom/extra provider ids the user added (not in the built-in auth-methods
+   *  list). Persisted so they keep showing in the modal after reopening it. */
+  function getExtraProviderIds() {
+    try {
+      const raw = localStorage.getItem('easyro_extra_providers');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }
+  function addExtraProvider(id) {
+    if (!id || id === '__custom__') return;
+    const list = getExtraProviderIds();
+    if (!list.includes(id)) {
+      list.push(id);
+      localStorage.setItem('easyro_extra_providers', JSON.stringify(list));
+    }
+  }
+  function removeExtraProvider(id) {
+    const list = getExtraProviderIds().filter((x) => x !== id);
+    localStorage.setItem('easyro_extra_providers', JSON.stringify(list));
+  }
+
   /** Open the provider modal and load available providers. */
   async function open() {
     const overlay = el("providerModalOverlay");
@@ -68,15 +98,33 @@
     el("providerList").innerHTML =
       '<div class="provider-list-empty">Loading providers...</div>';
 
+    // Full provider set from OpenCode. `all` includes custom providers defined
+    // in opencode.json (e.g. a hand-added "xiaomi" provider), which the
+    // auth-methods list alone does not surface.
+    let provData = { all: [], connected: [] };
+    try {
+      provData = await window.electronAPI.provider.list();
+    } catch {}
     await loadAuthMethods();
 
-    // Check which providers are already connected
-    try {
-      const provData = await window.electronAPI.provider.list();
-      PM.connectedProviders = provData.connected || [];
-    } catch {
-      PM.connectedProviders = [];
+    PM.connectedProviders = provData.connected || [];
+    PM.providersAllDetails = {};
+    for (const p of provData.all || []) {
+      PM.providersAllDetails[p.id] = p;
     }
+
+    // Display list = OpenCode's configurable defaults (auth-method providers)
+    // plus any provider it reports as actually connected (custom providers such
+    // as one added directly in opencode.json) plus providers added via this UI.
+    // We deliberately do NOT iterate the whole `all` registry — that includes
+    // every built-in provider definition and would flood the modal.
+    PM.providersList = [
+      ...new Set([
+        ...Object.keys(PM.authMethods),
+        ...(provData.connected || []),
+        ...getExtraProviderIds(),
+      ]),
+    ];
 
     renderProviderList();
   }
@@ -121,7 +169,10 @@
 
     container.innerHTML = "";
     for (const id of ids) {
-      const meta = getProviderMeta(id);
+      // Prefer the display name OpenCode reports for the provider (covers
+      // custom providers whose id isn't a friendly name).
+      const detail = PM.providersAllDetails ? PM.providersAllDetails[id] : null;
+      const meta = detail && detail.name ? { name: detail.name } : getProviderMeta(id);
       const methods = PM.authMethods[id] || [];
       const connected = connectedIds.includes(id);
 
@@ -133,20 +184,9 @@
         ? `<span class="provider-item-connected"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>`
         : "";
 
-      const deleteBtn = connected
-        ? `<span class="provider-item-delete" title="Remove provider"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M6 4V2.5h4V4M5 4l.6 9.5h4.8L11 4"/></svg></span>`
-        : "";
-
-      item.innerHTML = `<span class="provider-item-label">${meta.name} ${connectedMark}</span>${deleteBtn}`;
+      item.innerHTML = `<span class="provider-item-label">${meta.name} ${connectedMark}</span>`;
 
       item.addEventListener("click", () => selectProvider(id, methods, meta));
-      const delEl = item.querySelector(".provider-item-delete");
-      if (delEl) {
-        delEl.addEventListener("click", (e) => {
-          e.stopPropagation();
-          deleteProvider(id);
-        });
-      }
       container.appendChild(item);
     }
 
@@ -276,18 +316,25 @@
     el("providerExtraFields").innerHTML = "";
 
     const connectBtn = el("providerBtnConnect");
+    const disconnectBtn = el("providerBtnDisconnect");
     const removeBtn = el("providerBtnRemove");
 
-    // Already-connected providers: show the connected state with a Remove button.
+    // Already-connected providers: show the connected state. Custom providers
+    // can be fully deleted; built-in (default) providers can only be disconnected.
     if (isConnected) {
       defaultDetail.classList.remove("active");
       customDetail.classList.remove("active");
       connectedDetail.classList.add("active");
       connectBtn.style.display = "none";
-      removeBtn.style.display = "";
+      const isCustom = isCustomProvider(id);
+      disconnectBtn.style.display = "";
+      removeBtn.style.display = isCustom ? "" : "none";
+      disconnectBtn.disabled = false;
+      disconnectBtn.classList.remove("loading");
       removeBtn.disabled = false;
       removeBtn.classList.remove("loading");
-      removeBtn.innerHTML = "<span>Remove Provider</span>";
+      disconnectBtn.innerHTML = "<span>Disconnect</span>";
+      removeBtn.innerHTML = "<span>Delete Provider</span>";
       return;
     }
 
@@ -296,6 +343,7 @@
     defaultDetail.classList.add("active");
     customDetail.classList.remove("active");
     connectBtn.style.display = "";
+    disconnectBtn.style.display = "none";
     removeBtn.style.display = "none";
 
     document.getElementById("providerDetailDefault").classList.add("active");
@@ -359,6 +407,7 @@
     document.getElementById("providerDetailCustom").classList.remove("active");
     document.getElementById("providerDetailConnected").classList.remove("active");
     el("providerBtnConnect").style.display = "";
+    el("providerBtnDisconnect").style.display = "none";
     el("providerBtnRemove").style.display = "none";
   }
 
@@ -410,29 +459,46 @@
     // to catch server-side propagation of its models.
     addForceShowProvider(providerId);
     if (window.App.addConnectedProvider) window.App.addConnectedProvider(providerId);
+    addExtraProvider(providerId);
     window.Providers.loadProviders();
 
     setTimeout(() => close(), 900);
     refreshUntilProviderVisible(providerId);
   }
 
-  /** Remove a connected provider (DELETE /auth/{id}) and refresh the UI. */
-  async function deleteProvider(providerId) {
+  /** Disconnect or delete a provider.
+   *  - mode "disconnect": removes stored credentials (DELETE /auth/{id}) but
+   *    keeps the provider visible so it can be reconnected. Works for any
+   *    connected provider, including built-in defaults.
+   *  - mode "delete": same API call, but also drops the provider from local
+   *    tracking so custom providers disappear entirely from the UI. */
+  async function deleteProvider(providerId, mode) {
     if (PM.isConnecting || !providerId) return;
     PM.isConnecting = true;
 
+    const isDelete = mode === "delete";
+    const disconnectBtn = el("providerBtnDisconnect");
     const removeBtn = el("providerBtnRemove");
     const connectBtn = el("providerBtnConnect");
     connectBtn.disabled = true;
+    disconnectBtn.disabled = true;
     removeBtn.disabled = true;
-    removeBtn.classList.add("loading");
-    removeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg><span>Removing...</span>`;
+
+    const spinner = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg>`;
+    if (isDelete) {
+      removeBtn.classList.add("loading");
+      removeBtn.innerHTML = `${spinner}<span>Deleting...</span>`;
+    } else {
+      disconnectBtn.classList.add("loading");
+      disconnectBtn.innerHTML = `${spinner}<span>Disconnecting...</span>`;
+    }
 
     try {
       await window.electronAPI.provider.delete(providerId);
       if (window.App.removeConnectedProvider) {
         window.App.removeConnectedProvider(providerId);
       }
+      if (isDelete) removeExtraProvider(providerId);
       if (window.App.forceShowProviders) {
         window.App.forceShowProviders = window.App.forceShowProviders.filter(
           (x) => x !== providerId,
@@ -448,12 +514,15 @@
       renderProviderList();
       showListView();
     } catch (err) {
+      disconnectBtn.classList.remove("loading");
       removeBtn.classList.remove("loading");
+      disconnectBtn.disabled = false;
       removeBtn.disabled = false;
-      removeBtn.innerHTML = "<span>Remove Provider</span>";
+      disconnectBtn.innerHTML = "<span>Disconnect</span>";
+      removeBtn.innerHTML = "<span>Delete Provider</span>";
       connectBtn.disabled = false;
       el("providerError").textContent =
-        err.message || "Failed to remove provider.";
+        err.message || (isDelete ? "Failed to delete provider." : "Failed to disconnect provider.");
       el("providerError").classList.add("active");
     } finally {
       PM.isConnecting = false;
@@ -588,15 +657,17 @@
     el("providerModalClose").addEventListener("click", close);
     // Backdrop click
     el("providerModalBackdrop").addEventListener("click", close);
-    // Back button in detail view
+    // Back button in detail view (returns to the provider list)
     el("providerDetailBack").addEventListener("click", showListView);
-    // Cancel button
-    el("providerBtnCancel").addEventListener("click", showListView);
     // Connect button
     el("providerBtnConnect").addEventListener("click", doConnect);
-    // Remove button (connected providers)
+    // Disconnect button (connected providers)
+    el("providerBtnDisconnect").addEventListener("click", () => {
+      if (PM.selectedProvider) deleteProvider(PM.selectedProvider, "disconnect");
+    });
+    // Delete button (custom connected providers)
     el("providerBtnRemove").addEventListener("click", () => {
-      if (PM.selectedProvider) deleteProvider(PM.selectedProvider);
+      if (PM.selectedProvider) deleteProvider(PM.selectedProvider, "delete");
     });
     // Enter key in inputs
     const enterHandler = (e) => {

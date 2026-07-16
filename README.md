@@ -36,11 +36,7 @@ When you send a message, it goes to OpenCode. The AI reads your project files, w
 Before using EasyRo, you need:
 
 - **OpenCode CLI** — install with `npm install -g opencode-ai` (requires [Node.js](https://nodejs.org) v18+)
-- **Roblox Studio** with the **SyncRo plugin** installed:
-  - Open Roblox Studio
-  - Go to Toolbox > Plugins
-  - Search for "SyncRo" and install it
-  - The plugin appears under your Plugins tab
+- **Roblox Studio** — EasyRo automatically installs the SyncRo plugin into Roblox Studio's Plugins folder on first launch, and the plugin connects to EasyRo automatically when you open Studio. No manual install or connection is needed; just have Roblox Studio installed.
 
 ### Using OpenCode
 
