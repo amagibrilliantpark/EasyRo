@@ -115,12 +115,15 @@
       return;
     }
 
+    const connectedIds = window.App.getConnectedProviderIds
+      ? window.App.getConnectedProviderIds()
+      : PM.connectedProviders || [];
+
     container.innerHTML = "";
     for (const id of ids) {
       const meta = getProviderMeta(id);
       const methods = PM.authMethods[id] || [];
-      const connected =
-        PM.connectedProviders && PM.connectedProviders.includes(id);
+      const connected = connectedIds.includes(id);
 
       const item = document.createElement("button");
       item.className = "provider-item";
@@ -130,9 +133,20 @@
         ? `<span class="provider-item-connected"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>`
         : "";
 
-      item.innerHTML = `${meta.name} ${connectedMark}`;
+      const deleteBtn = connected
+        ? `<span class="provider-item-delete" title="Remove provider"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 4h12M6 4V2.5h4V4M5 4l.6 9.5h4.8L11 4"/></svg></span>`
+        : "";
+
+      item.innerHTML = `<span class="provider-item-label">${meta.name} ${connectedMark}</span>${deleteBtn}`;
 
       item.addEventListener("click", () => selectProvider(id, methods, meta));
+      const delEl = item.querySelector(".provider-item-delete");
+      if (delEl) {
+        delEl.addEventListener("click", (e) => {
+          e.stopPropagation();
+          deleteProvider(id);
+        });
+      }
       container.appendChild(item);
     }
 
@@ -243,12 +257,46 @@
     const apiMethodIndex = methods.findIndex((m) => m.type === "api");
     const oauthMethodIndex = methods.findIndex((m) => m.type === "oauth");
 
+    const isConnected =
+      window.App.getConnectedProviderIds &&
+      window.App.getConnectedProviderIds().includes(id);
+
     el("providerDetailTitle").textContent = meta.name;
     el("providerList").classList.remove("active");
     el("providerList").classList.add("hidden");
     el("providerDetail").classList.add("active");
     el("providerError").classList.remove("active");
     el("providerSuccess").classList.remove("active");
+
+    const defaultDetail = document.getElementById("providerDetailDefault");
+    const customDetail = document.getElementById("providerDetailCustom");
+    const connectedDetail = document.getElementById("providerDetailConnected");
+
+    el("providerOAuthCodeRow").style.display = "none";
+    el("providerExtraFields").innerHTML = "";
+
+    const connectBtn = el("providerBtnConnect");
+    const removeBtn = el("providerBtnRemove");
+
+    // Already-connected providers: show the connected state with a Remove button.
+    if (isConnected) {
+      defaultDetail.classList.remove("active");
+      customDetail.classList.remove("active");
+      connectedDetail.classList.add("active");
+      connectBtn.style.display = "none";
+      removeBtn.style.display = "";
+      removeBtn.disabled = false;
+      removeBtn.classList.remove("loading");
+      removeBtn.innerHTML = "<span>Remove Provider</span>";
+      return;
+    }
+
+    // Not connected: show the normal connect form.
+    connectedDetail.classList.remove("active");
+    defaultDetail.classList.add("active");
+    customDetail.classList.remove("active");
+    connectBtn.style.display = "";
+    removeBtn.style.display = "none";
 
     document.getElementById("providerDetailDefault").classList.add("active");
     document.getElementById("providerDetailCustom").classList.remove("active");
@@ -296,7 +344,6 @@
       el("providerKeyInput").focus();
     }
 
-    const connectBtn = el("providerBtnConnect");
     connectBtn.disabled = false;
     connectBtn.classList.remove("loading");
     connectBtn.innerHTML = "<span>Connect</span>";
@@ -310,6 +357,9 @@
     el("providerError").classList.remove("active");
     document.getElementById("providerDetailDefault").classList.remove("active");
     document.getElementById("providerDetailCustom").classList.remove("active");
+    document.getElementById("providerDetailConnected").classList.remove("active");
+    el("providerBtnConnect").style.display = "";
+    el("providerBtnRemove").style.display = "none";
   }
 
   function setConnecting(label) {
@@ -319,16 +369,95 @@
     connectBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg><span>${label}</span>`;
   }
 
-  function showSuccess() {
+  function addForceShowProvider(id) {
+    if (!id) return;
+    if (!window.App.forceShowProviders) window.App.forceShowProviders = [];
+    if (!window.App.forceShowProviders.includes(id)) {
+      window.App.forceShowProviders.push(id);
+    }
+  }
+
+  // Poll GET /provider until the just-connected provider shows up with models,
+  // then refresh the model picker. Bounded (<=8 requests over ~3s) and only
+  // runs right after a connect, so it adds no steady load to the app.
+  async function refreshUntilProviderVisible(providerId) {
+    const maxAttempts = 8;
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const data = await window.electronAPI.provider.list();
+        const all = (data && (data.all || data.data)) || [];
+        const found = all.find((p) => p.id === providerId);
+        if (found && found.models && Object.keys(found.models).length > 0) {
+          window.Providers.loadProviders();
+          return true;
+        }
+      } catch (e) {
+        // transient error — keep polling
+      }
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    // Fallback: force-show already revealed it; do one final refresh.
+    window.Providers.loadProviders();
+    return false;
+  }
+
+  async function showSuccess(providerId) {
     el("providerDetail").classList.remove("active");
     el("providerSuccess").classList.add("active");
 
-    setTimeout(() => {
-      close();
-      if (window.Providers && window.Providers.loadProviders) {
-        window.Providers.loadProviders();
+    // Reveal the new provider immediately (force-show bypasses the
+    // startup-derived "connected" gate), then poll briefly in the background
+    // to catch server-side propagation of its models.
+    addForceShowProvider(providerId);
+    if (window.App.addConnectedProvider) window.App.addConnectedProvider(providerId);
+    window.Providers.loadProviders();
+
+    setTimeout(() => close(), 900);
+    refreshUntilProviderVisible(providerId);
+  }
+
+  /** Remove a connected provider (DELETE /auth/{id}) and refresh the UI. */
+  async function deleteProvider(providerId) {
+    if (PM.isConnecting || !providerId) return;
+    PM.isConnecting = true;
+
+    const removeBtn = el("providerBtnRemove");
+    const connectBtn = el("providerBtnConnect");
+    connectBtn.disabled = true;
+    removeBtn.disabled = true;
+    removeBtn.classList.add("loading");
+    removeBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg><span>Removing...</span>`;
+
+    try {
+      await window.electronAPI.provider.delete(providerId);
+      if (window.App.removeConnectedProvider) {
+        window.App.removeConnectedProvider(providerId);
       }
-    }, 1200);
+      if (window.App.forceShowProviders) {
+        window.App.forceShowProviders = window.App.forceShowProviders.filter(
+          (x) => x !== providerId,
+        );
+      }
+      window.Providers.loadProviders();
+
+      // Re-fetch the server-side connected list and rebuild the modal list.
+      try {
+        const provData = await window.electronAPI.provider.list();
+        PM.connectedProviders = provData.connected || [];
+      } catch {}
+      renderProviderList();
+      showListView();
+    } catch (err) {
+      removeBtn.classList.remove("loading");
+      removeBtn.disabled = false;
+      removeBtn.innerHTML = "<span>Remove Provider</span>";
+      connectBtn.disabled = false;
+      el("providerError").textContent =
+        err.message || "Failed to remove provider.";
+      el("providerError").classList.add("active");
+    } finally {
+      PM.isConnecting = false;
+    }
   }
 
   function showConnectError(message) {
@@ -397,7 +526,7 @@
       PM.methodIndex,
       code,
     );
-    showSuccess();
+    showSuccess(providerId);
   }
 
   /** Handle the plain API-key connect flow (PUT /auth/{id} with an ApiAuth body). */
@@ -431,7 +560,7 @@
       ...(metadata && Object.keys(metadata).length > 0 && { metadata }),
     };
     await window.electronAPI.provider.connect(providerId, credentials);
-    showSuccess();
+    showSuccess(providerId);
   }
 
   async function doConnect() {
@@ -465,6 +594,10 @@
     el("providerBtnCancel").addEventListener("click", showListView);
     // Connect button
     el("providerBtnConnect").addEventListener("click", doConnect);
+    // Remove button (connected providers)
+    el("providerBtnRemove").addEventListener("click", () => {
+      if (PM.selectedProvider) deleteProvider(PM.selectedProvider);
+    });
     // Enter key in inputs
     const enterHandler = (e) => {
       if (e.key === "Enter") doConnect();

@@ -2,6 +2,7 @@
 async function loadProviders() {
   const t0 = performance.now();
   try {
+    if (!window.App.forceShowProviders) window.App.forceShowProviders = [];
     const providers = await window.electronAPI.provider.list();
     window.App.providers = providers || [];
     populateModelSelector(providers);
@@ -21,6 +22,52 @@ async function loadAgents() {
     console.error(`[Init] loadAgents FAILED in ${(performance.now() - t0).toFixed(0)}ms:`, error.message);
     if(window.App.debug)console.error('Failed to load agents:', error);
   }
+}
+
+/** Persisted set of provider ids the user has confirmed connected this session.
+ *  OpenCode only marks providers "connected" after reloading its startup auth,
+ *  so we track them locally to keep the checkmark / model catalog in sync. */
+function readConnectedProviderIds() {
+  try {
+    const raw = localStorage.getItem('easyro_connected_providers');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Union of server-reported connected providers, locally confirmed ones, and
+ *  providers force-revealed right after a connect. */
+function getConnectedProviderIds() {
+  const server = (window.App.providers && window.App.providers.connected) || [];
+  const manual = readConnectedProviderIds();
+  const force = window.App.forceShowProviders || [];
+  return [...new Set([...server, ...manual, ...force])];
+}
+
+function addConnectedProvider(id) {
+  if (!id) return;
+  const list = readConnectedProviderIds();
+  if (!list.includes(id)) {
+    list.push(id);
+    localStorage.setItem('easyro_connected_providers', JSON.stringify(list));
+  }
+}
+
+function removeConnectedProvider(id) {
+  const list = readConnectedProviderIds().filter((x) => x !== id);
+  localStorage.setItem('easyro_connected_providers', JSON.stringify(list));
+  if (window.App.forceShowProviders) {
+    window.App.forceShowProviders = window.App.forceShowProviders.filter(
+      (x) => x !== id,
+    );
+  }
+}
+
+function providerDisplayName(id, fallback) {
+  if (fallback && fallback.name) return fallback.name;
+  if (fallback && fallback.id) return fallback.id;
+  return id.charAt(0).toUpperCase() + id.slice(1);
 }
 
 /** Build the model selector dropdown from provider data, restoring saved selection. */
@@ -58,10 +105,15 @@ function populateModelSelector(providers) {
 
   if (!providers) return;
 
-  const connectedIds = providers.connected || [];
   const allProviders = providers.all || [];
-  const providerList = connectedIds.length > 0
-    ? allProviders.filter(p => connectedIds.includes(p.id))
+  // Providers the user just added are force-revealed even before OpenCode's
+  // server marks them "connected" (credentials load at startup, so a freshly
+  // stored key may not appear in `connected` until a restart). This keeps the
+  // newly added provider visible in the model picker immediately. When nothing
+  // is connected yet we fall back to showing every provider so the user can pick.
+  const effectiveConnected = getConnectedProviderIds();
+  const providerList = effectiveConnected.length > 0
+    ? allProviders.filter((p) => effectiveConnected.includes(p.id))
     : allProviders;
 
   const savedModel = localStorage.getItem('easyro_model');
@@ -71,6 +123,14 @@ function populateModelSelector(providers) {
 
   for (const provider of providerList) {
     const models = provider.models ? Object.values(provider.models) : [];
+    if (!models.length) continue;
+
+    // Group header: provider name above its models
+    const groupHeader = document.createElement('div');
+    groupHeader.className = 'model-group-header';
+    groupHeader.textContent = providerDisplayName(provider.id, provider);
+    list.appendChild(groupHeader);
+
     for (const model of models) {
       const item = document.createElement('div');
       item.className = 'popup-item';
@@ -83,7 +143,7 @@ function populateModelSelector(providers) {
 
       item.addEventListener('click', (e) => {
         e.stopPropagation();
-        list.querySelectorAll('.popup-item').forEach(i => i.classList.remove('selected'));
+        list.querySelectorAll('.popup-item').forEach((i) => i.classList.remove('selected'));
         item.classList.add('selected');
         modelSelector.querySelector('span').textContent = name;
 
@@ -179,3 +239,6 @@ function openVariantPopup(model) {
 }
 
 window.Providers = { loadProviders, loadAgents };
+window.App.getConnectedProviderIds = getConnectedProviderIds;
+window.App.addConnectedProvider = addConnectedProvider;
+window.App.removeConnectedProvider = removeConnectedProvider;

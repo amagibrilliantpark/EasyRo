@@ -102,6 +102,19 @@ body[data-theme="dark"] .btn-send.stop-mode { background: #b8450a; }
   font-size: 11px; font-weight: 600; color: var(--text-muted);
   text-transform: uppercase; letter-spacing: 0.8px;
 }
+
+/* Provider group header inside the model catalog */
+.model-group-header {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10.5px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  padding: 12px 14px 4px;
+  margin-top: 2px;
+}
+.model-group-header:first-child {
+  padding-top: 4px;
+  margin-top: 0;
+}
 .btn-add-provider {
   display: flex; align-items: center; gap: 4px;
   padding: 4px 10px; border-radius: 6px;
