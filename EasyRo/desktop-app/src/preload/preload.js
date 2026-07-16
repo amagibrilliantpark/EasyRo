@@ -88,6 +88,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ),
     oauthCallback: (providerId, method, code) =>
       ipcRenderer.invoke("provider:oauth-callback", providerId, method, code),
+    delete: (providerId) =>
+      ipcRenderer.invoke("provider:delete", providerId),
   },
 
   agent: {

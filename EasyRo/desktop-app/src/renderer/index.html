@@ -638,7 +638,7 @@
                 <div class="rp-todo-list" id="todoList"></div>
                 <div class="rp-footer">
                     <span class="rp-footer-logo">Easy<em>Ro</em></span>
-                    <span class="rp-footer-ver">v2.0.0</span>
+                    <span class="rp-footer-ver">v2.0.1</span>
                 </div>
             </aside>
         </div>
@@ -723,6 +723,21 @@
                             id="providerDetailTitle"
                             >Provider</span
                         >
+                    </div>
+
+                    <!-- Connected provider detail -->
+                    <div
+                        class="provider-detail-connected"
+                        id="providerDetailConnected"
+                    >
+                        <div class="provider-connected-badge">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                            Connected
+                        </div>
+                        <div class="provider-detail-hint">
+                            This provider is connected and ready to use in the
+                            model catalog.
+                        </div>
                     </div>
 
                     <!-- Default provider detail -->
@@ -840,6 +855,12 @@
                             id="providerBtnConnect"
                         >
                             <span>Connect</span>
+                        </button>
+                        <button
+                            class="provider-btn-remove"
+                            id="providerBtnRemove"
+                        >
+                            <span>Remove Provider</span>
                         </button>
                     </div>
                 </div>

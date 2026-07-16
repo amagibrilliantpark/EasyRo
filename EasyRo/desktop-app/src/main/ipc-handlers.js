@@ -202,6 +202,12 @@ function setupIpcHandlers(instanceManager, sessionManager, project) {
     },
   );
 
+  ipcMain.handle("provider:delete", async (event, providerId) => {
+    const client = instanceManager.getClient(project.id);
+    if (!client) throw new Error("Instance not running");
+    return await client.deleteAuth(providerId);
+  });
+
   ipcMain.handle("agent:list", async () => {
     const client = instanceManager.getClient(project.id);
     if (!client) throw new Error("Instance not running");
