@@ -43,18 +43,28 @@ app.whenReady().then(async () => {
   // ── Clean shutdown: kill child processes (SyncRo + OpenCode/Bun tree) on ANY
   //    quit path, then force-exit so the main process can never become a zombie. ──
   let _quitting = false;
+  let _startupTimeout = null;
+  let _startupProgressInterval = null;
   app.on('before-quit', (event) => {
     if (_quitting) return;
     _quitting = true;
     event.preventDefault();
     (async () => {
       try {
+        // Clear startup timers
+        if (_startupTimeout) clearTimeout(_startupTimeout);
+        if (_startupProgressInterval) clearInterval(_startupProgressInterval);
+        
         if (sessionManager) {
           const activeId = sessionManager.getActiveSession();
           if (activeId) { try { sessionManager.saveCurrentTo(activeId); } catch (e) {} }
         }
+        if (syncroClient) {
+          syncroClient.shutdown();
+        }
         await instanceManager.killAll();
         cleanupAllSSEBridges();
+        await log.shutdown(); // Flush logs before exit
       } catch (e) {
         log.warn('SYSTEM', 'Cleanup error during quit:', e && e.message);
       } finally {
@@ -89,7 +99,7 @@ app.whenReady().then(async () => {
   log.info('SYSTEM', `IPC handlers configured in ${Date.now() - appStart}ms`);
 
   // Auto-start the project instance with timeout
-  const startupTimeout = setTimeout(() => {
+  _startupTimeout = setTimeout(() => {
     log.error('SYSTEM', `=== STARTUP TIMEOUT after 60 seconds ===`);
     log.error('SYSTEM', 'Current instance status:', instanceManager.getStatus('default'));
     const mainWindow = getMainWindow();
@@ -99,13 +109,13 @@ app.whenReady().then(async () => {
   }, 60000);
 
   // Periodic startup progress monitor
-  let startupProgressInterval = setInterval(() => {
+  _startupProgressInterval = setInterval(() => {
     const elapsed = Date.now() - appStart;
     const status = instanceManager.getStatus(project.id);
     log.info('SYSTEM', `[Startup Monitor] ${elapsed}ms - Status: ${status.status}`);
     if (status.error) log.error('SYSTEM', `[Startup Monitor] Error: ${status.error}`);
     if (status.status === 'running' || status.status === 'error' || elapsed > 65000) {
-      clearInterval(startupProgressInterval);
+      clearInterval(_startupProgressInterval);
     }
   }, 5000);
 
@@ -173,13 +183,27 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', async () => {
   log.info('SYSTEM', 'All windows closed, shutting down...');
-  if (sessionManager) {
-    const activeId = sessionManager.getActiveSession();
-    if (activeId) {
-      try { sessionManager.saveCurrentTo(activeId); } catch (e) {}
+  try {
+    // Clear startup timers
+    if (_startupTimeout) clearTimeout(_startupTimeout);
+    if (_startupProgressInterval) clearInterval(_startupProgressInterval);
+    
+    if (sessionManager) {
+      const activeId = sessionManager.getActiveSession();
+      if (activeId) {
+        try { sessionManager.saveCurrentTo(activeId); } catch (e) {}
+      }
     }
+    if (syncroClient) {
+      syncroClient.shutdown();
+    }
+    await instanceManager.killAll();
+    cleanupAllSSEBridges();
+    await log.shutdown(); // Flush logs before exit
+  } catch (e) {
+    log.warn('SYSTEM', 'Cleanup error during window-all-closed:', e && e.message);
+  } finally {
+    clearInterval(_heartbeatInterval);
+    app.exit(0);
   }
-  await instanceManager.killAll();
-  cleanupAllSSEBridges();
-  if (process.platform !== 'darwin') app.quit();
 });

@@ -155,6 +155,15 @@ class SyncRoClient {
     }
   }
 
+  shutdown() {
+    log.info('SYNCRO_CLIENT', 'Shutting down SyncRo client...');
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+    this.disconnect();
+  }
+
   isConnected() {
     return this.connected;
   }
