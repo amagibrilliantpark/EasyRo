@@ -17,6 +17,8 @@ ManifestDPIAwareness "PerMonitorV2,System"
   Section "Desktop Shortcut" SecDesktopShortcut
     SectionIn 1
     CreateShortCut "$DESKTOP\EasyRo.lnk" "$INSTDIR\EasyRo.exe" "" "$INSTDIR\EasyRo.exe" 0
+    # Refresh icon cache to ensure icon displays correctly
+    System::Call 'shell32.dll::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
   SectionEnd
 
   # Hide the main "install" section from components list
@@ -38,4 +40,11 @@ ManifestDPIAwareness "PerMonitorV2,System"
     FunctionEnd
   !macroend
 
+!else
+  # ── Uninstall: Remove desktop shortcut if it exists ──
+  !macro customUnInit
+    Delete "$DESKTOP\EasyRo.lnk"
+    # Refresh icon cache after deletion
+    System::Call 'shell32.dll::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+  !macroend
 !endif
