@@ -25,6 +25,45 @@ let _heartbeatInterval = setInterval(() => {
 }, 2000);
 
 app.whenReady().then(async () => {
+  // ── Ensure only one EasyRo instance runs ──
+  if (!app.requestSingleInstanceLock()) {
+    app.quit();
+    return;
+  }
+
+  app.on('second-instance', () => {
+    const win = getMainWindow();
+    if (win && !win.isDestroyed()) {
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    }
+  });
+
+  // ── Clean shutdown: kill child processes (SyncRo + OpenCode/Bun tree) on ANY
+  //    quit path, then force-exit so the main process can never become a zombie. ──
+  let _quitting = false;
+  app.on('before-quit', (event) => {
+    if (_quitting) return;
+    _quitting = true;
+    event.preventDefault();
+    (async () => {
+      try {
+        if (sessionManager) {
+          const activeId = sessionManager.getActiveSession();
+          if (activeId) { try { sessionManager.saveCurrentTo(activeId); } catch (e) {} }
+        }
+        await instanceManager.killAll();
+        cleanupAllSSEBridges();
+      } catch (e) {
+        log.warn('SYSTEM', 'Cleanup error during quit:', e && e.message);
+      } finally {
+        clearInterval(_heartbeatInterval);
+        app.exit(0);
+      }
+    })();
+  });
+
   const appStart = Date.now();
   log.info('SYSTEM', '=== Application starting ===');
   log.info('SYSTEM', `Platform: ${process.platform}, Arch: ${process.arch}, Electron: ${process.versions.electron}`);
