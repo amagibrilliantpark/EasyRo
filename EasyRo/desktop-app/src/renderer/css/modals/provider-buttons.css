@@ -1,0 +1,134 @@
+.provider-detail-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.provider-btn-disconnect {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.provider-btn-disconnect:hover {
+    background: var(--accent-hover);
+}
+.provider-btn-disconnect:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.provider-btn-disconnect.loading svg {
+    width: 14px;
+    height: 14px;
+    animation: provider-spin 0.8s linear infinite;
+}
+
+.provider-btn-connect {
+    padding: 10px 24px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent-color);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.provider-btn-connect:hover {
+    opacity: 0.9;
+}
+.provider-btn-connect:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.provider-btn-connect.loading svg {
+    width: 14px;
+    height: 14px;
+    animation: provider-spin 0.8s linear infinite;
+}
+
+/* Connected provider state */
+.provider-detail-connected {
+    display: none;
+    flex-direction: column;
+    gap: 14px;
+}
+.provider-detail-connected.active {
+    display: flex;
+}
+.provider-connected-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    align-self: flex-start;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+}
+.provider-connected-badge svg {
+    width: 15px;
+    height: 15px;
+}
+
+.provider-btn-remove {
+    padding: 10px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--color-danger);
+    background: var(--color-danger-bg);
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-danger);
+    cursor: pointer;
+    transition: background 0.12s, opacity 0.12s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.provider-btn-remove:hover {
+    background: var(--color-danger);
+    color: #fff;
+}
+.provider-btn-remove:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+.provider-btn-remove.loading svg {
+    width: 14px;
+    height: 14px;
+    animation: provider-spin 0.8s linear infinite;
+}
+
+.provider-error {
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    font-family: "DM Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    display: none;
+}
+.provider-error.active {
+    display: block;
+}

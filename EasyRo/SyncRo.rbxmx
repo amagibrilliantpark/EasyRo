@@ -415,23 +415,23 @@ return Connection
       <Item class="ModuleScript" referent="RBX00000002">
         <Properties>
           <string name="Name">Push</string>
-          <string name="Source">local Push = {}
+          <string name="Source">-- Pushes file changes from SyncRo into Studio. Behavior is split across focused
+-- submodules (PushApply, PushProps, PushTree); they are merged into the Push table
+-- below so callers keep using the same `Push` API.
+local Push = {}
 Push.__index = Push
 
 local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
 
-local SERVICE_MAP = {
-	ServerScriptService = game:GetService(&quot;ServerScriptService&quot;),
-	ServerStorage = game:GetService(&quot;ServerStorage&quot;),
-	ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;),
-	ReplicatedFirst = game:GetService(&quot;ReplicatedFirst&quot;),
-	StarterPlayer = game:GetService(&quot;StarterPlayer&quot;),
-	StarterGui = game:GetService(&quot;StarterGui&quot;),
-	StarterPack = game:GetService(&quot;StarterPack&quot;),
-	Workspace = game:GetService(&quot;Workspace&quot;),
-	Lighting = game:GetService(&quot;Lighting&quot;),
-	SoundService = game:GetService(&quot;SoundService&quot;),
-}
+local Apply = require(script.Parent:WaitForChild(&quot;PushApply&quot;))
+local Props = require(script.Parent:WaitForChild(&quot;PushProps&quot;))
+local Tree = require(script.Parent:WaitForChild(&quot;PushTree&quot;))
+
+for _, mod in ipairs({Apply, Props, Tree}) do
+	for k, v in pairs(mod) do
+		Push[k] = v
+	end
+end
 
 function Push.new()
 	local self = setmetatable({}, Push)
@@ -439,7 +439,19 @@ function Push.new()
 	return self
 end
 
-function Push:applyFullSync(files)
+return Push
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000003">
+        <Properties>
+          <string name="Name">PushApply</string>
+          <string name="Source">-- Push apply operations: full-sync, file/dir changes and removals.
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+
+local PushApply = {}
+
+function PushApply:applyFullSync(files)
 	if not files then return end
 
 	Debug.log(&quot;Push&quot;, &quot;Applying full-sync:&quot;, #files, &quot;files&quot;)
@@ -452,7 +464,7 @@ function Push:applyFullSync(files)
 	return true
 end
 
-function Push:applyFileChanged(relativePath, instanceData)
+function PushApply:applyFileChanged(relativePath, instanceData)
 	if not relativePath or not instanceData then return end
 
 	Debug.log(&quot;Push&quot;, &quot;File changed:&quot;, relativePath, &quot;(&quot; .. (instanceData.className or &quot;?&quot;) .. &quot;)&quot;)
@@ -502,7 +514,7 @@ function Push:applyFileChanged(relativePath, instanceData)
 	end
 end
 
-function Push:applyFileRemoved(relativePath)
+function PushApply:applyFileRemoved(relativePath)
 	Debug.log(&quot;Push&quot;, &quot;File removed:&quot;, relativePath)
 	local inst = self.InstanceMap[relativePath]
 	if inst then
@@ -518,7 +530,7 @@ function Push:applyFileRemoved(relativePath)
 	self.InstanceMap[relativePath] = nil
 end
 
-function Push:applyDirRemoved(relativePath)
+function PushApply:applyDirRemoved(relativePath)
 	Debug.log(&quot;Push&quot;, &quot;Dir removed:&quot;, relativePath)
 	local inst = self.InstanceMap[relativePath]
 	if inst then
@@ -546,7 +558,7 @@ function Push:applyDirRemoved(relativePath)
 	end
 end
 
-function Push:getAllTracked()
+function PushApply:getAllTracked()
 	local result = {}
 	for path, inst in pairs(self.InstanceMap) do
 		result[path] = inst
@@ -554,7 +566,19 @@ function Push:getAllTracked()
 	return result
 end
 
-function Push:_applyInlineInstance(instanceData)
+return PushApply
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000004">
+        <Properties>
+          <string name="Name">PushProps</string>
+          <string name="Source">-- Push property application and inline instances.
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+
+local PushProps = {}
+
+function PushProps:_applyInlineInstance(instanceData)
 	local service = self:_resolveServicePath(instanceData.servicePath)
 	if not service then return end
 
@@ -584,7 +608,7 @@ function Push:_applyInlineInstance(instanceData)
 	end
 end
 
-function Push:_applyProperties(instance, properties)
+function PushProps:_applyProperties(instance, properties)
 	if not properties or type(properties) ~= &quot;table&quot; then return end
 
 	local ENUM_MAP = {
@@ -652,7 +676,7 @@ function Push:_applyProperties(instance, properties)
 	end
 end
 
-function Push:_clearAll()
+function PushProps:_clearAll()
 	for path, inst in pairs(self.InstanceMap) do
 		if inst and inst.Parent then
 			inst.Parent = nil
@@ -661,7 +685,32 @@ function Push:_clearAll()
 	self.InstanceMap = {}
 end
 
-function Push:_resolveParent(relativePath, instanceData)
+return PushProps
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000005">
+        <Properties>
+          <string name="Name">PushTree</string>
+          <string name="Source">-- Push tree building, service/folder resolution, and instance creation.
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+
+local PushTree = {}
+
+local SERVICE_MAP = {
+	ServerScriptService = game:GetService(&quot;ServerScriptService&quot;),
+	ServerStorage = game:GetService(&quot;ServerStorage&quot;),
+	ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;),
+	ReplicatedFirst = game:GetService(&quot;ReplicatedFirst&quot;),
+	StarterPlayer = game:GetService(&quot;StarterPlayer&quot;),
+	StarterGui = game:GetService(&quot;StarterGui&quot;),
+	StarterPack = game:GetService(&quot;StarterPack&quot;),
+	Workspace = game:GetService(&quot;Workspace&quot;),
+	Lighting = game:GetService(&quot;Lighting&quot;),
+	SoundService = game:GetService(&quot;SoundService&quot;),
+}
+
+function PushTree:_resolveParent(relativePath, instanceData)
 	if instanceData.servicePath then
 		return self:_resolveServicePath(instanceData.servicePath)
 	end
@@ -679,7 +728,7 @@ function Push:_resolveParent(relativePath, instanceData)
 	return self:_ensureFolder(parentPath)
 end
 
-function Push:_resolveServicePath(servicePath)
+function PushTree:_resolveServicePath(servicePath)
 	if not servicePath or #servicePath == 0 then
 		return nil
 	end
@@ -707,7 +756,7 @@ function Push:_resolveServicePath(servicePath)
 	return current
 end
 
-function Push:_ensureFolder(relativePath)
+function PushTree:_ensureFolder(relativePath)
 	local parts = string.split(relativePath, &quot;/&quot;)
 	local current = nil
 	local accumulated = {}
@@ -732,7 +781,7 @@ function Push:_ensureFolder(relativePath)
 	return current
 end
 
-function Push:_buildTree(files)
+function PushTree:_buildTree(files)
 	local root = { name = &quot;SyncRo&quot;, children = {} }
 
 	for _, file in ipairs(files) do
@@ -768,7 +817,7 @@ function Push:_buildTree(files)
 	return root
 end
 
-function Push:_createTree(node, parentInstance)
+function PushTree:_createTree(node, parentInstance)
 	if node.isDir and node.file == nil then
 		local folder = Instance.new(&quot;Folder&quot;)
 		folder.Name = node.name
@@ -808,7 +857,7 @@ function Push:_createTree(node, parentInstance)
 	end
 end
 
-function Push:_createInstance(file)
+function PushTree:_createInstance(file)
 	local inst = nil
 
 	if file.className == &quot;Script&quot; or file.runContext then
@@ -859,7 +908,7 @@ function Push:_createInstance(file)
 	return inst
 end
 
-function Push:_getParentPath(relativePath)
+function PushTree:_getParentPath(relativePath)
 	local parts = string.split(relativePath, &quot;/&quot;)
 	table.remove(parts)
 	if #parts == 0 then
@@ -868,7 +917,7 @@ function Push:_getParentPath(relativePath)
 	return table.concat(parts, &quot;/&quot;)
 end
 
-function Push:_splitPath(relativePath)
+function PushTree:_splitPath(relativePath)
 	local parts = {}
 	for part in string.gmatch(relativePath, &quot;[^/]+&quot;) do
 		table.insert(parts, part)
@@ -879,17 +928,54 @@ function Push:_splitPath(relativePath)
 	return parts
 end
 
-return Push
+return PushTree
 </string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00000003">
+      <Item class="ModuleScript" referent="RBX00000006">
         <Properties>
           <string name="Name">Pull</string>
-          <string name="Source">local Pull = {}
+          <string name="Source">-- Pulls Studio changes into SyncRo. Behavior is split across focused submodules
+-- (PullConfig, PullWatch, PullSend); they are merged into the Pull table below so
+-- callers keep using the same `Pull` API.
+local Pull = {}
 Pull.__index = Pull
 
 local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+
+local Config = require(script.Parent:WaitForChild(&quot;PullConfig&quot;))
+local Watch = require(script.Parent:WaitForChild(&quot;PullWatch&quot;))
+local Send = require(script.Parent:WaitForChild(&quot;PullSend&quot;))
+
+for _, mod in ipairs({Config, Watch, Send}) do
+	for k, v in pairs(mod) do
+		Pull[k] = v
+	end
+end
+
+function Pull.new(connection, ui)
+	local self = setmetatable({}, Pull)
+	self.Connection = connection
+	self.UI = ui
+	self._connections = {}
+	self._instanceConnections = {}
+	self._instanceData = {}
+	self._changeBatch = {}
+	self._retryQueue = {}
+	self._running = false
+	self._watchedPaths = {}
+	return self
+end
+
+return Pull
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000007">
+        <Properties>
+          <string name="Name">PullConfig</string>
+          <string name="Source">-- Pull configuration, value serialization, and path utilities.
+local PullConfig = {}
 
 local PROPERTIES_TO_WATCH = {
 	default = {
@@ -929,61 +1015,13 @@ local PROPERTIES_TO_WATCH = {
 	LocalScript = { &quot;Source&quot;, &quot;RunContext&quot; },
 }
 
-local MAX_RETRY_QUEUE = 500
-
-function Pull.new(connection, ui)
-	local self = setmetatable({}, Pull)
-	self.Connection = connection
-	self.UI = ui
-	self._connections = {}
-	self._instanceConnections = {}
-	self._instanceData = {}
-	self._changeBatch = {}
-	self._retryQueue = {}
-	self._running = false
-	self._watchedPaths = {}
-	return self
-end
-
-function Pull:_getPropertiesForInstance(instance)
+function PullConfig:_getPropertiesForInstance(instance)
 	local className = instance.ClassName
 	local props = PROPERTIES_TO_WATCH[className] or PROPERTIES_TO_WATCH.default
 	return props
 end
 
-function Pull:_captureInstance(instance, path)
-	local isScript = instance:IsA(&quot;Script&quot;) or instance:IsA(&quot;ModuleScript&quot;) or instance:IsA(&quot;LocalScript&quot;)
-	local data = {
-		path = path,
-		className = instance.ClassName,
-		name = instance.Name,
-		isScript = isScript,
-	}
-
-	if isScript then
-		data.source = self:_getSource(instance)
-	end
-
-	local props = {}
-	local propNames = self:_getPropertiesForInstance(instance)
-	for _, propName in ipairs(propNames) do
-		local ok, val = pcall(function()
-			return instance[propName]
-		end)
-		if ok and val ~= nil then
-			local serialized = self:_serializeValue(val)
-			if serialized ~= nil then
-				props[propName] = serialized
-			end
-		end
-	end
-	data.properties = props
-
-	self._instanceData[path] = data
-	return data
-end
-
-function Pull:_serializeValue(value)
+function PullConfig:_serializeValue(value)
 	if type(value) == &quot;boolean&quot; or type(value) == &quot;number&quot; or type(value) == &quot;string&quot; then
 		return value
 	end
@@ -1053,7 +1091,78 @@ function Pull:_serializeValue(value)
 	return nil
 end
 
-function Pull:_watchContainer(container, prefix)
+function PullConfig:_getSource(instance)
+	if instance:IsA(&quot;Script&quot;) or instance:IsA(&quot;ModuleScript&quot;) or instance:IsA(&quot;LocalScript&quot;) then
+		local ok, source = pcall(function()
+			return instance.Source
+		end)
+		if ok then
+			return source
+		end
+	end
+	return nil
+end
+
+function PullConfig:_getParentPath(path)
+	local parts = string.split(path, &quot;/&quot;)
+	if #parts &lt;= 1 then
+		return &quot;&quot;
+	end
+	table.remove(parts)
+	return table.concat(parts, &quot;/&quot;)
+end
+
+function PullConfig:_getFileName(path)
+	if not path then return &quot;unknown&quot; end
+	local parts = string.split(path, &quot;/&quot;)
+	return parts[#parts] or path
+end
+
+return PullConfig
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000008">
+        <Properties>
+          <string name="Name">PullWatch</string>
+          <string name="Source">-- Pull instance watching: capture, watch containers/instances, untrack.
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+
+local PullWatch = {}
+
+function PullWatch:_captureInstance(instance, path)
+	local isScript = instance:IsA(&quot;Script&quot;) or instance:IsA(&quot;ModuleScript&quot;) or instance:IsA(&quot;LocalScript&quot;)
+	local data = {
+		path = path,
+		className = instance.ClassName,
+		name = instance.Name,
+		isScript = isScript,
+	}
+
+	if isScript then
+		data.source = self:_getSource(instance)
+	end
+
+	local props = {}
+	local propNames = self:_getPropertiesForInstance(instance)
+	for _, propName in ipairs(propNames) do
+		local ok, val = pcall(function()
+			return instance[propName]
+		end)
+		if ok and val ~= nil then
+			local serialized = self:_serializeValue(val)
+			if serialized ~= nil then
+				props[propName] = serialized
+			end
+		end
+	end
+	data.properties = props
+
+	self._instanceData[path] = data
+	return data
+end
+
+function PullWatch:_watchContainer(container, prefix)
 	local ok, children = pcall(function()
 		return container:GetChildren()
 	end)
@@ -1104,7 +1213,7 @@ function Pull:_watchContainer(container, prefix)
 	table.insert(self._connections, childRemoved)
 end
 
-function Pull:_watchInstance(instance, path, servicePrefix)
+function PullWatch:_watchInstance(instance, path, servicePrefix)
 	local isScript = instance:IsA(&quot;Script&quot;) or instance:IsA(&quot;ModuleScript&quot;) or instance:IsA(&quot;LocalScript&quot;)
 
 	if isScript then
@@ -1220,7 +1329,7 @@ function Pull:_watchInstance(instance, path, servicePrefix)
 	end
 end
 
-function Pull:_untrackInstance(instance)
+function PullWatch:_untrackInstance(instance)
 	local conns = self._instanceConnections[instance]
 	if conns then
 		for _, conn in ipairs(conns) do
@@ -1232,7 +1341,21 @@ function Pull:_untrackInstance(instance)
 	end
 end
 
-function Pull:_sendBatch()
+return PullWatch
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000009">
+        <Properties>
+          <string name="Name">PullSend</string>
+          <string name="Source">-- Pull batch sending, retry queue, and lifecycle (start/stop).
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+
+local PullSend = {}
+
+local MAX_RETRY_QUEUE = 500
+
+function PullSend:_sendBatch()
 	local batch = self._changeBatch
 	self._changeBatch = {}
 
@@ -1288,7 +1411,7 @@ function Pull:_sendBatch()
 	end
 end
 
-function Pull:_flushRetryQueue()
+function PullSend:_flushRetryQueue()
 	if #self._retryQueue == 0 then return end
 	if not self.Connection or not self.Connection.Connected then return end
 
@@ -1306,34 +1429,7 @@ function Pull:_flushRetryQueue()
 	end
 end
 
-function Pull:_getSource(instance)
-	if instance:IsA(&quot;Script&quot;) or instance:IsA(&quot;ModuleScript&quot;) or instance:IsA(&quot;LocalScript&quot;) then
-		local ok, source = pcall(function()
-			return instance.Source
-		end)
-		if ok then
-			return source
-		end
-	end
-	return nil
-end
-
-function Pull:_getParentPath(path)
-	local parts = string.split(path, &quot;/&quot;)
-	if #parts &lt;= 1 then
-		return &quot;&quot;
-	end
-	table.remove(parts)
-	return table.concat(parts, &quot;/&quot;)
-end
-
-function Pull:_getFileName(path)
-	if not path then return &quot;unknown&quot; end
-	local parts = string.split(path, &quot;/&quot;)
-	return parts[#parts] or path
-end
-
-function Pull:start()
+function PullSend:start()
 	if self._running then return end
 	self._running = true
 
@@ -1370,7 +1466,7 @@ function Pull:start()
 	Debug.log(&quot;Pull&quot;, &quot;Studio watcher started&quot;)
 end
 
-function Pull:stop()
+function PullSend:stop()
 	self._running = false
 	for _, conn in ipairs(self._connections) do
 		if conn.Connected then
@@ -1384,42 +1480,34 @@ function Pull:stop()
 	self._watchedPaths = {}
 end
 
-return Pull
+return PullSend
 </string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00000004">
+      <Item class="ModuleScript" referent="RBX00000010">
         <Properties>
           <string name="Name">UI</string>
-          <string name="Source">local UI = {}
+          <string name="Source">-- Provider status panel UI. Delegates widget construction and runtime behavior
+-- to focused submodules (UIHeader, UIBody, UILog, UIToast); they are merged into
+-- the UI table below so callers keep using the same `UI` API.
+local UI = {}
 UI.__index = UI
+
+local Theme = require(script.Parent:WaitForChild(&quot;UITheme&quot;))
+local COLORS = Theme.COLORS
 
 local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
 
-local ICON_DEFAULT = &quot;rbxassetid://122938149261388&quot;
-local ICON_READY = &quot;rbxassetid://96268949025540&quot;
-local ICON_PENDING = &quot;rbxassetid://121504636070088&quot;
-local ICON_ERROR = &quot;rbxassetid://128202884165853&quot;
+local Header = require(script.Parent:WaitForChild(&quot;UIHeader&quot;))
+local Body = require(script.Parent:WaitForChild(&quot;UIBody&quot;))
+local Log = require(script.Parent:WaitForChild(&quot;UILog&quot;))
+local Toast = require(script.Parent:WaitForChild(&quot;UIToast&quot;))
 
-local COLORS = {
-	bg = Color3.fromRGB(15, 25, 35),
-	card = Color3.fromRGB(22, 32, 51),
-	accent = Color3.fromRGB(232, 98, 26),
-	accentDark = Color3.fromRGB(180, 75, 20),
-	text = Color3.fromRGB(255, 255, 255),
-	textDim = Color3.fromRGB(140, 160, 180),
-	success = Color3.fromRGB(40, 200, 80),
-	warning = Color3.fromRGB(240, 190, 0),
-	error = Color3.fromRGB(255, 80, 80),
-	grid = Color3.fromRGB(26, 42, 58),
-	inputBg = Color3.fromRGB(20, 30, 45),
-	logBg = Color3.fromRGB(12, 20, 30),
-}
-
-local ICON_IN = &quot;rbxassetid://6031265976&quot;
-local ICON_OUT = &quot;rbxassetid://6031265978&quot;
-local ICON_ADD = &quot;rbxassetid://6031265974&quot;
-local ICON_REMOVE = &quot;rbxassetid://6031265980&quot;
+for _, mod in ipairs({Header, Body, Log, Toast}) do
+	for k, v in pairs(mod) do
+		UI[k] = v
+	end
+end
 
 function UI.new(plugin, connection)
 	local self = setmetatable({}, UI)
@@ -1559,7 +1647,55 @@ function UI:create()
 	return self
 end
 
-function UI:_createHeader(parent)
+return UI
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000011">
+        <Properties>
+          <string name="Name">UITheme</string>
+          <string name="Source">-- Shared UI theme constants (colors + icons) used across UI submodules.
+local Theme = {}
+
+Theme.COLORS = {
+	bg = Color3.fromRGB(15, 25, 35),
+	card = Color3.fromRGB(22, 32, 51),
+	accent = Color3.fromRGB(232, 98, 26),
+	accentDark = Color3.fromRGB(180, 75, 20),
+	text = Color3.fromRGB(255, 255, 255),
+	textDim = Color3.fromRGB(140, 160, 180),
+	success = Color3.fromRGB(40, 200, 80),
+	warning = Color3.fromRGB(240, 190, 0),
+	error = Color3.fromRGB(255, 80, 80),
+	grid = Color3.fromRGB(26, 42, 58),
+	inputBg = Color3.fromRGB(20, 30, 45),
+	logBg = Color3.fromRGB(12, 20, 30),
+}
+
+Theme.ICON_DEFAULT = &quot;rbxassetid://122938149261388&quot;
+Theme.ICON_READY = &quot;rbxassetid://96268949025540&quot;
+Theme.ICON_PENDING = &quot;rbxassetid://121504636070088&quot;
+Theme.ICON_ERROR = &quot;rbxassetid://128202884165853&quot;
+
+Theme.ICON_IN = &quot;rbxassetid://6031265976&quot;
+Theme.ICON_OUT = &quot;rbxassetid://6031265978&quot;
+Theme.ICON_ADD = &quot;rbxassetid://6031265974&quot;
+Theme.ICON_REMOVE = &quot;rbxassetid://6031265980&quot;
+
+return Theme
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000012">
+        <Properties>
+          <string name="Name">UIHeader</string>
+          <string name="Source">-- Widget construction: header, status card, and connection panel.
+local Theme = require(script.Parent:WaitForChild(&quot;UITheme&quot;))
+local COLORS = Theme.COLORS
+
+local Header = {}
+
+function Header:_createHeader(parent)
 	local header = Instance.new(&quot;Frame&quot;)
 	header.Name = &quot;Header&quot;
 	header.Size = UDim2.new(1, 0, 0, 50)
@@ -1643,7 +1779,7 @@ function UI:_createHeader(parent)
 	version.Parent = header
 end
 
-function UI:_createStatusCard(parent)
+function Header:_createStatusCard(parent)
 	local card = Instance.new(&quot;Frame&quot;)
 	card.Name = &quot;StatusCard&quot;
 	card.Size = UDim2.new(1, 0, 0, 70)
@@ -1716,7 +1852,7 @@ function UI:_createStatusCard(parent)
 	self.StatusCard = card
 end
 
-function UI:_createConnectionPanel(parent)
+function Header:_createConnectionPanel(parent)
 	local panel = Instance.new(&quot;Frame&quot;)
 	panel.Name = &quot;ConnectionPanel&quot;
 	panel.Size = UDim2.new(1, 0, 0, 90)
@@ -1802,7 +1938,21 @@ function UI:_createConnectionPanel(parent)
 	end)
 end
 
-function UI:_createActivityLog(parent)
+return Header
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000013">
+        <Properties>
+          <string name="Name">UIBody</string>
+          <string name="Source">-- Widget construction: activity log and footer.
+local Theme = require(script.Parent:WaitForChild(&quot;UITheme&quot;))
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+local COLORS = Theme.COLORS
+
+local Body = {}
+
+function Body:_createActivityLog(parent)
 	local logContainer = Instance.new(&quot;Frame&quot;)
 	logContainer.Name = &quot;LogContainer&quot;
 	logContainer.Size = UDim2.new(1, 0, 1, -260)
@@ -1882,7 +2032,7 @@ function UI:_createActivityLog(parent)
 	self:addLog(&quot;info&quot;, &quot;SyncRo initialized&quot;)
 end
 
-function UI:_createFooter(parent)
+function Body:_createFooter(parent)
 	local footer = Instance.new(&quot;Frame&quot;)
 	footer.Name = &quot;Footer&quot;
 	footer.Size = UDim2.new(1, 0, 0, 32)
@@ -1925,7 +2075,25 @@ function UI:_createFooter(parent)
 	end)
 end
 
-function UI:addLog(logType, message)
+return Body
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000014">
+        <Properties>
+          <string name="Name">UILog</string>
+          <string name="Source">-- Logging, status display, and icon updates.
+local Theme = require(script.Parent:WaitForChild(&quot;UITheme&quot;))
+local Debug = require(script.Parent:WaitForChild(&quot;Debug&quot;))
+local COLORS = Theme.COLORS
+local ICON_READY = Theme.ICON_READY
+local ICON_PENDING = Theme.ICON_PENDING
+local ICON_ERROR = Theme.ICON_ERROR
+local ICON_DEFAULT = Theme.ICON_DEFAULT
+
+local Log = {}
+
+function Log:addLog(logType, message)
 	if not self.ActivityLog then return end
 
 	local timestamp = os.date(&quot;%H:%M:%S&quot;)
@@ -2008,7 +2176,7 @@ function UI:addLog(logType, message)
 	end
 end
 
-function UI:clearLog()
+function Log:clearLog()
 	for _, entry in ipairs(self.ActivityEntries) do
 		if entry then
 			entry:Destroy()
@@ -2018,7 +2186,7 @@ function UI:clearLog()
 	self:addLog(&quot;info&quot;, &quot;Log cleared&quot;)
 end
 
-function UI:setStatus(status)
+function Log:setStatus(status)
 	self.Status = status
 
 	if status ~= self.NotifiedStatus then
@@ -2075,7 +2243,7 @@ function UI:setStatus(status)
 	end
 end
 
-function UI:updateSyncInfo(fileCount, direction)
+function Log:updateSyncInfo(fileCount, direction)
 	if not self.SyncInfo then return end
 	if direction == &quot;in&quot; then
 		self.SyncInfo.Text = &quot;← Last sync: &quot; .. fileCount .. &quot; file(s) received&quot;
@@ -2086,7 +2254,7 @@ function UI:updateSyncInfo(fileCount, direction)
 	end
 end
 
-function UI:setIcon(state)
+function Log:setIcon(state)
 	if not self.Button then return end
 
 	local iconMap = {
@@ -2107,7 +2275,20 @@ function UI:setIcon(state)
 	end
 end
 
-function UI:_ensureToastLayer()
+return Log
+</string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="RBX00000015">
+        <Properties>
+          <string name="Name">UIToast</string>
+          <string name="Source">-- Toast notifications and widget cleanup.
+local Theme = require(script.Parent:WaitForChild(&quot;UITheme&quot;))
+local COLORS = Theme.COLORS
+
+local Toast = {}
+
+function Toast:_ensureToastLayer()
 	if self.ToastGui and self.ToastGui.Parent then
 		return self.ToastGui
 	end
@@ -2122,7 +2303,7 @@ function UI:_ensureToastLayer()
 	return gui
 end
 
-function UI:showToast(title, message, color)
+function Toast:showToast(title, message, color)
 	local gui
 	local ok = pcall(function()
 		gui = self:_ensureToastLayer()
@@ -2243,7 +2424,7 @@ function UI:showToast(title, message, color)
 	end)
 end
 
-function UI:destroy()
+function Toast:destroy()
 	if self.Button then
 		self.Button:Destroy()
 	end
@@ -2256,11 +2437,11 @@ function UI:destroy()
 	end
 end
 
-return UI
+return Toast
 </string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="RBX00000005">
+      <Item class="ModuleScript" referent="RBX00000016">
         <Properties>
           <string name="Name">Debug</string>
           <string name="Source">local Debug = {}

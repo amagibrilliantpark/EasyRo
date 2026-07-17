@@ -1,0 +1,18 @@
+/* ── Dark mode: remove glassmorphism ── */
+body[data-theme="dark"] .provider-modal,
+body[data-theme="dark"] .provider-modal-backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+/* ── Dark mode: fix inline option description color ── */
+body[data-theme="dark"] .qm-label div[style*="color"] {
+    color: #8090a0 !important;
+}
+
+/* ── Dark mode: remove glassmorphism ── */
+body[data-theme="dark"] .question-modal,
+body[data-theme="dark"] .revert-modal {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}

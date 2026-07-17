@@ -1,0 +1,193 @@
+/* ── Provider Modal ── */
+.provider-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.provider-modal-overlay.hidden {
+    display: none;
+}
+
+.provider-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: var(--overlay-bg);
+}
+
+.provider-modal {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    background: var(--bg-modal);
+    border-radius: 20px;
+    box-shadow:
+        0 10px 30px var(--shadow-color),
+        0 4px 12px var(--shadow-color);
+    border: 1px solid var(--border-color);
+    padding: 20px;
+    margin: 20px;
+    height: 420px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.provider-modal-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-shrink: 0;
+    padding-right: 36px;
+}
+
+.provider-modal-title {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: 1px;
+}
+
+.provider-modal-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.provider-modal-close:hover {
+    background: var(--accent-hover);
+}
+.provider-modal-close svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Provider list */
+.provider-list {
+    flex: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-content: flex-start;
+    padding: 4px 8px 4px 0;
+    overflow-y: auto;
+    min-height: 0;
+}
+.provider-list::-webkit-scrollbar {
+    width: 8px;
+}
+.provider-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.provider-list::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+}
+
+.provider-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    text-align: left;
+    font-family: inherit;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    min-width: 0;
+}
+.provider-item:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-color);
+}
+.provider-item.selected {
+    background: var(--accent-hover);
+}
+
+.provider-item .provider-item-connected {
+    color: var(--color-success);
+    margin-left: auto;
+    display: inline-flex;
+}
+.provider-item .provider-item-connected svg {
+    width: 12px;
+    height: 12px;
+}
+.provider-item.loading svg {
+    width: 12px;
+    height: 12px;
+    animation: provider-spin 0.8s linear infinite;
+    color: var(--text-muted);
+}
+.provider-item-other {
+    border-style: dashed;
+    color: var(--accent-color);
+}
+.provider-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+.provider-item-delete {
+    flex-shrink: 0;
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    visibility: hidden;
+}
+.provider-item-delete svg {
+    width: 14px;
+    height: 14px;
+}
+.provider-item:hover .provider-item-delete {
+    visibility: visible;
+}
+.provider-item-delete:hover {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+@keyframes provider-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ── Provider list view toggle ── */
+.provider-list.active {
+    display: flex;
+}
+.provider-list.hidden {
+    display: none;
+}

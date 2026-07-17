@@ -1,0 +1,69 @@
+/* ── CSS Variables ── */
+:root {
+  /* Light Theme (default) */
+  --bg-primary: #f5f7fa;
+  --bg-sidebar: rgba(255,255,255,0.58);
+  --bg-panel: rgba(255,255,255,0.85);
+  --bg-modal: #ffffff;
+  --bg-input: rgba(255,255,255,0.70);
+  --text-primary: #18283a;
+  --text-secondary: #4a5a6a;
+  --text-muted: #7a8a9a;
+  --border-color: rgb(180,210,240);
+  --border-sidebar: rgba(180,210,240,0.65);
+  --accent-color: #4e87bb;
+  --accent-hover: rgba(210,230,250,0.50);
+  --accent-glass: rgba(160,200,235,0.09);
+  --shadow-color: rgba(160,200,235,0.09);
+  --grid-color: transparent;
+  --logo-fill: #c2d9f0;
+  --logo-dark: #18283a;
+  --logo-accent: #f5f7fa;
+  --scrollbar-thumb: rgba(160, 200, 235, 0.30);
+  --color-danger: #c0392b;
+  --color-danger-bg: rgba(192,57,43,0.15);
+  --color-warning: #e67e22;
+  --color-success: #2e8b57;
+  --color-diff-add: #2e8b57;
+  --color-diff-remove: #c0392b;
+  --color-diff-context: #6a849e;
+  --overlay-bg: rgba(0,0,0,0.30);
+}
+
+body[data-theme="dark"] {
+  /* Dark Theme */
+  --bg-primary: #0f1923;
+  --bg-sidebar: rgba(22,32,48,0.85);
+  --bg-panel: rgba(22,32,48,0.70);
+  --bg-modal: #162030;
+  --bg-input: rgba(22,32,48,0.60);
+  --text-primary: #ffffff;
+  --text-secondary: #b0c0d0;
+  --text-muted: #8090a0;
+  --border-color: #2a3a4a;
+  --border-sidebar: #1a2a3a;
+  --accent-color: #e8621a;
+  --accent-hover: rgba(232,98,26,0.20);
+  --accent-glass: rgba(232,98,26,0.08);
+  --shadow-color: rgba(0,0,0,0.30);
+  --grid-color: #1a2a3a;
+  --logo-fill: #e8621a;
+  --logo-dark: #162030;
+  --logo-accent: #e8621a;
+  --gradient-1: rgba(232,98,26,0.14);
+  --gradient-2: rgba(232,98,26,0.12);
+  --gradient-3: rgba(232,98,26,0.11);
+  --gradient-4: rgba(232,98,26,0.125);
+  --gradient-5: rgba(232,98,26,0.10);
+  --gradient-6: rgba(232,98,26,0.09);
+  --gradient-7: rgba(232,98,26,0.105);
+  --scrollbar-thumb: rgba(232, 98, 26, 0.35);
+  --color-danger: #e74c3c;
+  --color-danger-bg: rgba(231,76,60,0.20);
+  --color-warning: #f39c12;
+  --color-success: #2ecc71;
+  --color-diff-add: #2ecc71;
+  --color-diff-remove: #e74c3c;
+  --color-diff-context: #8aa0b8;
+  --overlay-bg: rgba(0,0,0,0.30);
+}
