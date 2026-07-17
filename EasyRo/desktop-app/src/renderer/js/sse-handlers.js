@@ -1,56 +1,3 @@
-// Tracks the active text part ID for streaming deltas
-let activeTextPartID = null;
-let isCompacting = false;
-
-// Throttle cache for session stats refresh
-let statsRefreshThrottle = null;
-const STATS_REFRESH_DELAY = 2000; // 2 seconds
-
-/** Subscribe to SSE events from the main process and route them to handlers. */
-function initSSE() {
-  window.electronAPI.onEvent((data) => {
-    const props = data.properties || {};
-    const sid = props.sessionID || props.id || "";
-    const isCurrent = sid === window.App.currentSession;
-
-    switch (data.type) {
-      case "message.part.updated":
-        if (isCurrent) handlePartUpdate(data.properties);
-        break;
-      case "message.part.delta":
-        if (isCurrent) handlePartDelta(data.properties);
-        break;
-      case "message.updated":
-        if (isCurrent) handleMessageUpdated(data.properties);
-        break;
-      case "session.status":
-        handleSessionStatus(data.properties);
-        break;
-      case "question.asked":
-        window.Modals.showQuestionModal(data.properties);
-        break;
-      case "permission.asked":
-        handlePermissionAsked(data.properties);
-        break;
-      case "todo.updated":
-        handleTodoUpdated(data.properties);
-        break;
-      case "session.updated":
-        handleSessionUpdated(data.properties);
-        break;
-      case "session.idle":
-        handleSessionIdle(data.properties);
-        break;
-      case "session.error":
-        handleSessionError(data.properties);
-        break;
-      case "session.compacted":
-        handleSessionCompacted(data.properties);
-        break;
-    }
-  });
-}
-
 /** Handle message part updates: show thinking indicators, track text parts, update todos. */
 function handlePartUpdate(properties) {
   if (!properties || isCompacting) return;
@@ -93,7 +40,7 @@ function handlePartUpdate(properties) {
   }
 }
 
-/** Handle streaming text deltas — append to the current message. */
+/** Handle streaming text deltas â€” append to the current message. */
 function handlePartDelta(properties) {
   if (!properties || isCompacting) return;
   const { field, delta, sessionID, partID } = properties;
@@ -130,7 +77,7 @@ function handleSessionStatus(properties) {
   if (!statusEl) return;
 
   // Real SessionStatus values are only "idle" | "busy" | "retry" (see opencode's
-  // SessionStatus schema). There is no "error" status value — actual errors
+  // SessionStatus schema). There is no "error" status value â€” actual errors
   // arrive via the dedicated "session.error" event (handleSessionError below).
   // Compaction is signaled separately via the "session.compacted" event,
   // handled in handleSessionCompacted() below.
@@ -145,7 +92,7 @@ function handleSessionStatus(properties) {
   } else if (status === "retry") {
     const attempt = (statusObj && statusObj.attempt) || 0;
     const retryMsg = (statusObj && statusObj.message) || "Retrying...";
-    statusEl.textContent = `Retry ${attempt} — ${retryMsg}`;
+    statusEl.textContent = `Retry ${attempt} â€” ${retryMsg}`;
     window.Chat.showThinking(`Retrying (${attempt})...`);
   }
   // status === "idle" needs no handling here; see handleSessionIdle().
@@ -304,31 +251,6 @@ function handlePermissionAsked(properties) {
   const sessionID = properties.sessionID || properties.id;
   if (sessionID && sessionID !== window.App.currentSession) return;
 }
-
-/** Re-fetch messages to update token counts and cost in the right panel. */
-async function refreshSessionStats() {
-  const sessionToRefresh = window.App.currentSession;
-  if (!sessionToRefresh) return;
-
-  // Throttle refresh to avoid excessive API calls
-  if (statsRefreshThrottle) {
-    clearTimeout(statsRefreshThrottle);
-  }
-
-  statsRefreshThrottle = setTimeout(async () => {
-    statsRefreshThrottle = null;
-    try {
-      const messages =
-        await window.electronAPI.session.messages(sessionToRefresh);
-      if (window.App.currentSession !== sessionToRefresh) return;
-      const tokenData = window.RightPanel.aggregateTokensFromMessages(messages);
-      window.RightPanel.updateContextStats(tokenData);
-    } catch (error) {
-      console.error("[RENDERER] Session stats refresh error: " + error.message);
-    }
-  }, STATS_REFRESH_DELAY);
-}
-
 /** Update the todo list in the right panel when the backend pushes changes. */
 function handleTodoUpdated(properties) {
   if (!properties) return;
@@ -374,5 +296,3 @@ function handleSessionUpdated(properties) {
     window.Sessions.renderSessionList();
   }
 }
-
-window.SSE = { initSSE, refreshSessionStats, lastSendMessageTime: 0 };

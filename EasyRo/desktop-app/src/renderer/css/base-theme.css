@@ -1,0 +1,16 @@
+/* ── Theme-based SVG visibility ── */
+.bg-dark { display: none; }
+.sbg-dark { display: none; }
+body[data-theme="dark"] .bg-light { display: none; }
+body[data-theme="dark"] .bg-dark { display: block; }
+body[data-theme="dark"] .sbg-light { display: none; }
+body[data-theme="dark"] .sbg-dark { display: block; }
+
+/* ── Dark mode: remove glassmorphism ── */
+body[data-theme="dark"] .sidebar,
+body[data-theme="dark"] .search-bar input,
+body[data-theme="dark"] .center-search-backdrop,
+body[data-theme="dark"] .center-search-container {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}

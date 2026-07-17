@@ -1,0 +1,100 @@
+/* ── Revert Modal ── */
+.revert-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--overlay-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.revert-modal-overlay.hidden {
+    display: none;
+}
+
+.revert-modal {
+    background: var(--bg-modal);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    box-shadow:
+        0 2px 12px var(--shadow-color),
+        0 1px 2px var(--shadow-color);
+    padding: 20px;
+    position: relative;
+    min-width: 320px;
+    max-width: 90%;
+}
+
+.rm-header {
+    padding: 0 0 12px 0;
+}
+.rm-title {
+    font-family: "DM Sans", sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.rm-body {
+    padding: 0 0 16px 0;
+}
+
+.rm-message-preview {
+    background: var(--bg-input);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: "DM Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.rm-warning {
+    font-family: "DM Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-warning);
+    line-height: 1.4;
+}
+
+.rm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.rm-btn-cancel {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-input);
+    font-family: "DM Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.rm-btn-cancel:hover {
+    background: var(--accent-hover);
+}
+
+.rm-btn-revert {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent-color);
+    font-family: "DM Sans", sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+}
+.rm-btn-revert:hover {
+    opacity: 0.9;
+}
