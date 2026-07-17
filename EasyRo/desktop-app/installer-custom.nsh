@@ -40,11 +40,26 @@ ManifestDPIAwareness "PerMonitorV2,System"
     FunctionEnd
   !macroend
 
+  # ── Install: Add firewall exception for EasyRo ──
+  !macro customInstall
+    # Add firewall rule for main executable
+    ExecWait 'netsh advfirewall firewall add rule name="EasyRo" dir=in action=allow program="$INSTDIR\EasyRo.exe" enable=yes'
+    # Add firewall rule for SyncRo
+    ExecWait 'netsh advfirewall firewall add rule name="EasyRo SyncRo" dir=in action=allow program="$INSTDIR\resources\syncro.exe" enable=yes'
+  !macroend
+
 !else
   # ── Uninstall: Remove desktop shortcut if it exists ──
   !macro customUnInit
     Delete "$DESKTOP\EasyRo.lnk"
     # Refresh icon cache after deletion
     System::Call 'shell32.dll::SHChangeNotify(i 0x08000000, i 0, p 0, p 0)'
+  !macroend
+
+  # ── Uninstall: Remove firewall rules ──
+  !macro customUnInstall
+    # Remove firewall rules
+    ExecWait 'netsh advfirewall firewall delete rule name="EasyRo"'
+    ExecWait 'netsh advfirewall firewall delete rule name="EasyRo SyncRo"'
   !macroend
 !endif
