@@ -242,4 +242,20 @@ function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-module.exports = { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, sleep };
+/** Kill a process AND its entire child tree.
+ *  Windows: `taskkill /F /T` kills the cmd.exe wrapper AND the Bun/OpenCode
+ *  grandchild (spawned via shell:true) that a plain child.kill() would orphan.
+ *  POSIX: SIGTERM to the process group + pid. */
+async function killProcessTree(pid) {
+  if (!pid) return;
+  try {
+    if (process.platform === 'win32') {
+      await execAsync(`taskkill /F /T /PID ${pid}`, 5000);
+    } else {
+      try { process.kill(-pid, 'SIGTERM'); } catch {}
+      try { process.kill(pid, 'SIGTERM'); } catch {}
+    }
+  } catch {}
+}
+
+module.exports = { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, killProcessTree, sleep };

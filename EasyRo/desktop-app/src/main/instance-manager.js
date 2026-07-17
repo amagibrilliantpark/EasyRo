@@ -1,7 +1,7 @@
 const path = require('path');
 const log = require('./logger');
 const { OpenCodeClient } = require('./opencode-client');
-const { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, sleep } = require('./process-manager');
+const { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, killProcessTree, sleep } = require('./process-manager');
 
 /** Manages SyncRo and OpenCode child processes per project. */
 class InstanceManager {
@@ -142,15 +142,19 @@ class InstanceManager {
     const exitPromises = [];
 
     if (instance.syncroProcess) {
+      const p = instance.syncroProcess;
       exitPromises.push(new Promise((resolve) => {
-        instance.syncroProcess.on('exit', resolve);
-        instance.syncroProcess.kill();
+        p.on('exit', resolve);
+        p.kill();
+        killProcessTree(p.pid);
       }));
     }
     if (instance.opencodeProcess) {
+      const p = instance.opencodeProcess;
       exitPromises.push(new Promise((resolve) => {
-        instance.opencodeProcess.on('exit', resolve);
-        instance.opencodeProcess.kill();
+        p.on('exit', resolve);
+        p.kill();
+        killProcessTree(p.pid);
       }));
     }
 
