@@ -80,7 +80,7 @@ function Header:_createHeader(parent)
 	version.Size = UDim2.new(0, 40, 0, 16)
 	version.Position = UDim2.new(1, -40, 0, 4)
 	version.BackgroundTransparency = 1
-	version.Text = "v1.0 beta"
+	version.Text = "v1.0.0-beta"
 	version.TextColor3 = COLORS.textDim
 	version.TextSize = 10
 	version.Font = Enum.Font.Gotham
