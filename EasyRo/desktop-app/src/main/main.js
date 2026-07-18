@@ -131,7 +131,7 @@ app.whenReady().then(async () => {
         log.info('SYSTEM', 'Beginning instance start process...');
         await instanceManager.startInstance(project, ports);
         log.info('SYSTEM', `Instance started in ${Date.now() - instanceStart}ms`);
-        clearTimeout(startupTimeout);
+        clearTimeout(_startupTimeout);
 
         // Create SyncRo client after instance starts
         log.info('SYSTEM', `Creating SyncRo client for port ${ports.syncro}...`);
@@ -156,7 +156,7 @@ app.whenReady().then(async () => {
           log.info('SYSTEM', `=== Startup completed in ${Date.now() - appStart}ms ===`);
         }
       } catch (error) {
-        clearTimeout(startupTimeout);
+        clearTimeout(_startupTimeout);
         log.error('SYSTEM', `Startup error after ${Date.now() - appStart}ms:`, error.message);
         log.error('SYSTEM', 'Error stack:', error.stack);
         log.error('SYSTEM', 'Current instance status:', instanceManager.getStatus(project.id));
@@ -167,7 +167,7 @@ app.whenReady().then(async () => {
       }
     });
   } catch (error) {
-    clearTimeout(startupTimeout);
+    clearTimeout(_startupTimeout);
     log.error('SYSTEM', `Startup initialization error after ${Date.now() - appStart}ms:`, error.message);
     log.error('SYSTEM', 'Error stack:', error.stack);
     const mainWindow = getMainWindow();
