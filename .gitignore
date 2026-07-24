@@ -37,8 +37,9 @@ EasyRo/logs/
 git_diff.txt
 
 # Executables
-opencode.exe
+EasyRo/opencode.exe
 
 # Test files
 /test_*
+EasyRo/tests/
 
