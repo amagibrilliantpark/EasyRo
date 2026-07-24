@@ -36,3 +36,9 @@ EasyRo/logs/
 # Temp files
 git_diff.txt
 
+# Executables
+opencode.exe
+
+# Test files
+/test_*
+
