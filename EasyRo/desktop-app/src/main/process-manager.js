@@ -1,6 +1,7 @@
 const { spawn, exec, execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const https = require('https');
 const log = require('./logger');
 
 /** Execute a shell command asynchronously with timeout. */
@@ -20,11 +21,51 @@ function execAsync(command, timeout = 5000) {
 async function startOpencode(instance) {
   const { project, ports } = instance;
   const spawnStart = Date.now();
+  
+  // Find and validate OpenCode executable
+  let opencodePath = findOpencodeExecutable(project.path);
+  log.info('OPENCODE', `Found OpenCode at: ${opencodePath}`);
+  
+  // Check version if it's a local file (not just 'opencode' from PATH)
+  if (opencodePath !== 'opencode' && fs.existsSync(opencodePath)) {
+    const versionValid = await checkOpencodeVersion(opencodePath);
+    if (!versionValid) {
+      log.warn('OPENCODE', 'OpenCode version is below minimum, downloading v1.17.18...');
+      try {
+        opencodePath = await downloadOpencodeBinary(project.path);
+      } catch (error) {
+        log.error('OPENCODE', `Failed to download OpenCode: ${error.message}`);
+        // Fall back to existing binary anyway
+      }
+    }
+  } else if (opencodePath === 'opencode') {
+    // Check PATH version
+    const versionValid = await checkOpencodeVersion('opencode');
+    if (!versionValid) {
+      log.warn('OPENCODE', 'PATH OpenCode version is below minimum or not found, downloading v1.17.18...');
+      try {
+        opencodePath = await downloadOpencodeBinary(project.path);
+      } catch (error) {
+        log.error('OPENCODE', `Failed to download OpenCode: ${error.message}`);
+        // Fall back to PATH anyway
+      }
+    }
+  } else {
+    // No OpenCode found, download it
+    log.warn('OPENCODE', 'OpenCode not found, downloading v1.17.18...');
+    try {
+      opencodePath = await downloadOpencodeBinary(project.path);
+    } catch (error) {
+      log.error('OPENCODE', `Failed to download OpenCode: ${error.message}`);
+      throw new Error('OpenCode not found and download failed');
+    }
+  }
+  
   log.info('OPENCODE', `Spawning OpenCode: serve --port ${ports.opencode} (cwd: ${project.path})`);
 
   return new Promise((resolve, reject) => {
     const args = ['serve', '--port', ports.opencode.toString(), '--hostname', '127.0.0.1'];
-    const child = spawn('opencode', args, {
+    const child = spawn(opencodePath, args, {
       cwd: project.path,
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: process.platform === 'win32',
@@ -121,6 +162,99 @@ function findSyncRoExecutable(projectPath) {
 
   // 4) System PATH
   return 'syncro';
+}
+
+/** Find opencode.exe in the project dir, packaged resources, parent dir, or fall back to PATH. */
+function findOpencodeExecutable(projectPath) {
+  // 1) Bundled alongside the project (dev or user-data copy)
+  const localOpencode = path.join(projectPath, 'opencode.exe');
+  if (fs.existsSync(localOpencode)) return localOpencode;
+
+  // 2) Packaged as an extraResource (NSIS / portable → resources/opencode.exe)
+  if (process.resourcesPath) {
+    const resourcesOpencode = path.join(process.resourcesPath, 'opencode.exe');
+    if (fs.existsSync(resourcesOpencode)) return resourcesOpencode;
+  }
+
+  // 3) Parent directory (portable exe sitting next to the project folder)
+  const parentOpencode = path.join(path.dirname(projectPath), 'opencode.exe');
+  if (fs.existsSync(parentOpencode)) return parentOpencode;
+
+  // 4) System PATH (return 'opencode' to check PATH)
+  return 'opencode';
+}
+
+/** Check if opencode version is >= 1.17.18 */
+async function checkOpencodeVersion(opencodePath) {
+  try {
+    const result = await execAsync(`"${opencodePath}" -v`, 5000);
+    const versionMatch = result.match(/v?(\d+\.\d+\.\d+)/);
+    if (!versionMatch) {
+      log.warn('OPENCODE', `Could not parse version from: ${result}`);
+      return false;
+    }
+    const version = versionMatch[1];
+    log.info('OPENCODE', `Found OpenCode version: ${version}`);
+    
+    // Parse version and check if >= 1.17.18
+    const [major, minor, patch] = version.split('.').map(Number);
+    const minMajor = 1, minMinor = 17, minPatch = 18;
+    
+    if (major > minMajor) return true;
+    if (major === minMajor && minor > minMinor) return true;
+    if (major === minMajor && minor === minMinor && patch >= minPatch) return true;
+    
+    log.warn('OPENCODE', `OpenCode version ${version} is below minimum 1.17.18`);
+    return false;
+  } catch (error) {
+    log.warn('OPENCODE', `Failed to check OpenCode version: ${error.message}`);
+    return false;
+  }
+}
+
+/** Download OpenCode binary from GitHub releases (v1.17.18) */
+async function downloadOpencodeBinary(projectPath) {
+  const downloadUrl = 'https://github.com/anomalyco/opencode/releases/download/v1.17.18/opencode-windows-x64.exe';
+  const targetPath = path.join(projectPath, 'opencode.exe');
+  
+  log.info('OPENCODE', `Downloading OpenCode v1.17.18 from ${downloadUrl}`);
+  
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(targetPath);
+    
+    https.get(downloadUrl, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Download failed with status ${response.statusCode}`));
+        return;
+      }
+      
+      const totalSize = parseInt(response.headers['content-length'], 10);
+      let downloadedSize = 0;
+      
+      response.on('data', (chunk) => {
+        downloadedSize += chunk.length;
+        const progress = Math.round((downloadedSize / totalSize) * 100);
+        if (progress % 10 === 0) {
+          log.info('OPENCODE', `Download progress: ${progress}%`);
+        }
+      });
+      
+      response.pipe(file);
+      
+      file.on('finish', () => {
+        file.close();
+        log.info('OPENCODE', `OpenCode downloaded to ${targetPath}`);
+        resolve(targetPath);
+      });
+      
+      file.on('error', (error) => {
+        fs.unlink(targetPath, () => {});
+        reject(error);
+      });
+    }).on('error', (error) => {
+      reject(error);
+    });
+  });
 }
 
 /** Spawn the SyncRo process and resolve when it starts listening. */
@@ -258,4 +392,4 @@ async function killProcessTree(pid) {
   } catch {}
 }
 
-module.exports = { startOpencode, startSyncRo, findSyncRoExecutable, killProcessesOnPorts, killProcessTree, sleep };
+module.exports = { startOpencode, startSyncRo, findSyncRoExecutable, findOpencodeExecutable, checkOpencodeVersion, downloadOpencodeBinary, killProcessesOnPorts, killProcessTree, sleep };

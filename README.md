@@ -33,19 +33,16 @@ When you send a message, it goes to OpenCode. The AI reads your project files, w
 
 ## Requirements
 
-Before using EasyRo, you need:
-
-- **OpenCode CLI** — install with `npm install -g opencode-ai` (requires [Node.js](https://nodejs.org) v18+)
 - **Roblox Studio** — EasyRo automatically installs the SyncRo plugin into Roblox Studio's Plugins folder on first launch, and the plugin connects to EasyRo automatically when you open Studio. No manual install or connection is needed; just have Roblox Studio installed.
 
 ### Using OpenCode
 
 You have two options for the AI backend:
 
-1. **Free models** — OpenCode offers free models out of the box. Just install the CLI and start using it, no API key needed.
+1. **Free models** — OpenCode offers free models out of the box. Just start EasyRo and start using it, no API key needed.
 2. **Your own API key** — If you have any API key, you can connect it directly from EasyRo: click **Add** in the model selector, pick a provider (or add a custom one), and enter your API key or complete the OAuth flow. No terminal needed.
 
-SyncRo (`syncro.exe`) is included in the project — you don't need to install it separately.
+OpenCode CLI and SyncRo are included in the installer — you don't need to install them separately.
 
 ## Usage
 

@@ -36,6 +36,10 @@
         "to": "syncro.exe"
       },
       {
+        "from": "../opencode.exe",
+        "to": "opencode.exe"
+      },
+      {
         "from": "../SyncRo.rbxmx",
         "to": "SyncRo.rbxmx"
       },

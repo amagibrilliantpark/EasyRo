@@ -5,6 +5,7 @@ let isCompacting = false;
 // Throttle cache for session stats refresh
 let statsRefreshThrottle = null;
 const STATS_REFRESH_DELAY = 2000; // 2 seconds
+
 /** Subscribe to SSE events from the main process and route them to handlers. */
 function initSSE() {
   window.electronAPI.onEvent((data) => {

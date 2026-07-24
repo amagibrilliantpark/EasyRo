@@ -190,6 +190,17 @@ body[data-theme="dark"] .about-description {
   color: var(--text-primary);
 }
 
+.about-syncro {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-top: 12px;
+}
+body[data-theme="dark"] .about-syncro {
+  color: var(--text-primary);
+}
+
 .feedback-btn {
   display: flex;
   align-items: center;
